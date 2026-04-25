@@ -503,19 +503,24 @@ async function pushState(state) {
   if (!binId) { await createBin(state); return; }
   setSyncStatus('loading', '⟳ Saving...');
   try {
-    await fetch('https://api.jsonbin.io/v3/b/' + binId, {
+    var res = await fetch('https://api.jsonbin.io/v3/b/' + binId, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Master-Key': MASTER_KEY,
-        'X-Access-Key': ACCESS_KEY
+        'X-Master-Key': MASTER_KEY
       },
       body: JSON.stringify(state)
     });
+    var data = await res.json();
+    if (!res.ok) {
+      console.error('JSONBin push error:', res.status, data);
+      setSyncStatus('err', '✗ Save failed (' + res.status + '): ' + (data.message || ''));
+      return;
+    }
     setSyncStatus('ok', '✓ Saved ' + new Date().toLocaleTimeString());
   } catch(e) {
-    setSyncStatus('err', '✗ Save failed — changes stored locally');
-    localStorage.setItem('shinyBingo', JSON.stringify(state));
+    console.error('JSONBin push exception:', e);
+    setSyncStatus('err', '✗ Save failed — stored locally');
   }
 }
 
@@ -523,7 +528,7 @@ async function pullState() {
   if (!binId) return null;
   try {
     var res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
-      headers: { 'X-Master-Key': MASTER_KEY, 'X-Access-Key': ACCESS_KEY }
+      headers: { 'X-Master-Key': MASTER_KEY }
     });
     var data = await res.json();
     return data.record || null;
