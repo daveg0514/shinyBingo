@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shiny Hunting Bingo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0e12;
+  --surface: #17171e;
+  --surface2: #1f1f28;
+  --border: #2a2a36;
+  --border2: #3a3a4a;
+  --text: #e8e8f0;
+  --muted: #7a7a90;
+  --p1: #4fc3f7;
+  --p1bg: rgba(79,195,247,0.08);
+  --p1border: rgba(79,195,247,0.3);
+  --p2: #ff8a65;
+  --p2bg: rgba(255,138,101,0.08);
+  --p2border: rgba(255,138,101,0.3);
+  --gold: #ffd54f;
+  --green: #69f0ae;
+  --red: #ff5252;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+.scores {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.score-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border-radius: 24px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+}
+.score-chip.p1 { border-color: var(--p1border); }
+.score-chip.p2 { border-color: var(--p2border); }
+.score-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.score-val { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.score-chip.p1 .score-val { color: var(--p1); }
+.score-chip.p2 .score-val { color: var(--p2); }
+.header-actions { display: flex; gap: 8px; }
+.btn { 
+  padding: 7px 14px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+  border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text); transition: all 0.15s;
+  font-weight: 500;
+}
+.btn:hover { border-color: var(--gold); color: var(--gold); }
+.btn-primary { background: var(--gold); color: #0e0e12; border-color: var(--gold); font-weight: 600; }
+.btn-primary:hover { background: #ffe082; border-color: #ffe082; color: #0e0e12; }
+
+/* MAIN LAYOUT */
+.main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+/* DEX ROLLER */
+.dex-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dex-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.dex-section.p1-section { border-top: 2px solid var(--p1border); }
+.dex-section.p2-section { border-top: 2px solid var(--p2border); }
+.dex-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.dex-label { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; }
+.dex-section.p1-section .dex-label { color: var(--p1); }
+.dex-section.p2-section .dex-label { color: var(--p2); }
+.pokeball-btn {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 3px solid var(--border2);
+  cursor: pointer; position: relative; overflow: hidden;
+  background: var(--surface2); flex-shrink: 0;
+  transition: transform 0.1s, border-color 0.2s;
+}
+.pokeball-btn:hover { transform: scale(1.05); }
+.dex-section.p1-section .pokeball-btn:hover { border-color: var(--p1); }
+.dex-section.p2-section .pokeball-btn:hover { border-color: var(--p2); }
+.pb-top { position: absolute; top: 0; left: 0; right: 0; height: 50%; background: #e53935; }
+.pb-mid { position: absolute; top: calc(50% - 3px); left: 0; right: 0; height: 6px; background: #111; z-index: 2; }
+.pb-ctr { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 14px; height: 14px; background: #fff; border-radius: 50%; border: 3px solid #111; z-index: 3; transition: background 0.2s; }
+.pb-bot { position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: #eee; }
+.pokeball-btn.spinning .pb-top { animation: pball 0.12s linear infinite; }
+.pokeball-btn.spinning .pb-ctr { background: var(--gold); }
+@keyframes pball { 0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)} }
+.dex-result { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--gold); min-width: 60px; }
+.dex-result span { font-size: 11px; color: var(--muted); display: block; margin-top: 1px; }
+.dex-roll-btn { padding: 5px 12px; font-size: 11px; cursor: pointer; border-radius: var(--radius); border: 1px solid var(--border2); background: var(--surface2); color: var(--text); margin-left: auto; }
+.dex-roll-btn:hover { border-color: var(--gold); color: var(--gold); }
+.dex-slots-grid { display: flex; flex-direction: column; gap: 5px; }
+.slot-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px;
+  transition: border-color 0.15s;
+}
+.slot-row.filled { border-color: rgba(255,213,79,0.35); background: rgba(255,213,79,0.05); }
+.slot-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); min-width: 36px; }
+.slot-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; flex: 1; }
+.slot-row.filled .slot-val { color: var(--gold); }
+.slot-row:not(.filled) .slot-val { color: var(--muted); }
+.slot-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 1px 5px; border-radius: 3px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
+.slot-row.filled .slot-clear { opacity: 1; }
+.slot-clear:hover { color: var(--red); }
+
+/* BINGO GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.cell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s;
+  min-height: 140px;
+}
+.cell:hover { border-color: var(--border2); }
+.cell-name { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.4; }
+.cell-game { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+.cell-target { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--gold); }
+.catches { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.catch-slot {
+  border-radius: 5px; padding: 5px 7px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex; flex-direction: column; gap: 1px;
+  cursor: pointer; transition: border-color 0.15s;
+  min-height: 42px;
+}
+.catch-slot:hover { border-color: var(--border2); }
+.catch-slot.p1 { border-color: var(--p1border); background: var(--p1bg); }
+.catch-slot.p2 { border-color: var(--p2border); background: var(--p2bg); }
+.catch-player { font-size: 9px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.catch-slot.p1 .catch-player { color: var(--p1); }
+.catch-slot.p2 .catch-player { color: var(--p2); }
+.catch-slot:not(.p1):not(.p2) .catch-player { color: var(--muted); }
+.catch-mon { font-size: 10px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catch-pts { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+.catch-slot.p1 .catch-pts { color: var(--p1); }
+.catch-slot.p2 .catch-pts { color: var(--p2); }
+.catch-add { font-size: 9px; color: var(--muted); font-style: italic; }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 24px;
+  width: 440px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--gold); margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; font-family: 'DM Mono', monospace; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 5px; }
+.form-input, .form-select {
+  width: 100%; padding: 9px 12px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius); color: var(--text); font-size: 13px;
+  font-family: 'DM Sans', sans-serif; transition: border-color 0.15s; outline: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--gold); }
+.form-select option { background: var(--surface2); }
+.bst-hint { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+.bst-hint.found { color: var(--green); }
+.bst-hint.notfound { color: var(--red); }
+
+.score-preview {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 14px 16px;
+  margin: 16px 0; text-align: center;
+}
+.preview-num { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--gold); line-height: 1; }
+.preview-pts { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.preview-breakdown { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.8; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+/* CATCH LOG */
+.log-section { margin-top: 24px; }
+.log-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+.log-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.log-table th {
+  text-align: left; padding: 8px 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border2);
+  font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+  font-family: 'DM Mono', monospace;
+}
+.log-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.log-table tr:hover td { background: var(--surface2); }
+.tag-p1 { color: var(--p1); font-weight: 600; font-family: 'DM Mono', monospace; }
+.tag-p2 { color: var(--p2); font-weight: 600; font-family: 'DM Mono', monospace; }
+.pts-val { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--gold); }
+.del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+.del-btn:hover { color: var(--red); background: rgba(255,82,82,0.1); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius); padding: 12px 18px;
+  font-size: 13px; z-index: 300;
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+.empty-log { text-align: center; padding: 32px; color: var(--muted); font-size: 13px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">✦ Shiny Hunting Bingo</div>
+  <div class="scores">
+    <div class="score-chip p1">
+      <span class="score-label">Dave</span>
+      <span class="score-val" id="p1total">0</span>
+    </div>
+    <div class="score-chip p2">
+      <span class="score-label">Colton</span>
+      <span class="score-val" id="p2total">0</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span id="syncStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-right:4px">⟳ Connecting...</span>
+    <button class="btn" onclick="exportData()">Export JSON</button>
+    <button class="btn" onclick="importData()">Import JSON</button>
+    <button class="btn" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="resetAll()">Reset</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- DEX ROLLERS -->
+  <div class="dex-row">
+    <div class="dex-section p1-section">
+      <div class="dex-top">
+        <span class="dex-label">Dave Dex Roller</span>
+        <div class="pokeball-btn" id="pokeball1" onclick="rollDex(1)">
+          <div class="pb-top"></div><div class="pb-mid"></div><div class="pb-ctr"></div><div class="pb-bot"></div>
+        </div>
+        <div class="dex-result" id="dexResult1">#???<span id="dexSub1">tap to roll</span></div>
+        <button class="dex-roll-btn" onclick="rollDex(1)">Roll</button>
+      </div>
+      <div class="dex-slots-grid" id="dexSlots1"></div>
+    </div>
+    <div class="dex-section p2-section">
+      <div class="dex-top">
+        <span class="dex-label">Colton Dex Roller</span>
+        <div class="pokeball-btn" id="pokeball2" onclick="rollDex(2)">
+          <div class="pb-top"></div><div class="pb-mid"></div><div class="pb-ctr"></div><div class="pb-bot"></div>
+        </div>
+        <div class="dex-result" id="dexResult2">#???<span id="dexSub2">tap to roll</span></div>
+        <button class="dex-roll-btn" onclick="rollDex(2)">Roll</button>
+      </div>
+      <div class="dex-slots-grid" id="dexSlots2"></div>
+    </div>
+  </div>
+
+  <!-- BINGO GRID -->
+  <div class="grid" id="grid"></div>
+
+  <!-- CATCH LOG -->
+  <div class="log-section">
+    <div class="log-title">Catch Log</div>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Player</th><th>Square</th><th>Pokémon</th><th>BST</th>
+          <th>Game</th><th>Odds</th><th>Score</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <div class="empty-log" id="emptyLog">No catches logged yet.</div>
+  </div>
+</div>
+
+<!-- LOG MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Log Catch</div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div class="form-group">
+      <label class="form-label">Player</label>
+      <select class="form-select" id="fPlayer">
+        <option value="1">Dave</option>
+        <option value="2">Colton</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Pokémon Name</label>
+      <input class="form-input" type="text" id="fMon" placeholder="e.g. gyarados" autocomplete="off" oninput="onMonInput()">
+      <div class="bst-hint" id="bstHint">Type a Pokémon name to look up BST</div>
+    </div>
+
+    <!-- GAME -->
+    <div class="form-group">
+      <label class="form-label">Game</label>
+      <select class="form-select" id="fGame" onchange="onGameChange()">
+        <option value="frlg">FireRed / LeafGreen</option>
+        <option value="lgpe">Let's Go Pikachu / Eevee</option>
+        <option value="bdsp">Brilliant Diamond / Shining Pearl</option>
+        <option value="swsh">Sword / Shield</option>
+        <option value="la">Legends: Arceus</option>
+        <option value="lza">Legends: Z-A</option>
+        <option value="sv">Scarlet / Violet</option>
+      </select>
+    </div>
+
+    <!-- METHOD — populated dynamically per game -->
+    <div class="form-group">
+      <label class="form-label">Method</label>
+      <select class="form-select" id="fMethod" onchange="onMethodChange()"></select>
+    </div>
+
+    <!-- DYNAMIC BOOSTERS — shown/hidden per game+method -->
+    <div id="boosterSection"></div>
+
+    <!-- MARK -->
+    <div class="form-group">
+      <label class="form-label">Mark <span style="font-size:10px;color:var(--muted)">(Sword/Shield & S/V only)</span></label>
+      <select class="form-select" id="fMark" onchange="calcPreview()">
+        <option value="1.0">No mark</option>
+        <option value="1.5">Common mark (~1/100)</option>
+        <option value="2.0">Uncommon mark (~1/1,000)</option>
+        <option value="3.0">Rare mark (~1/10,000)</option>
+        <option value="5.0">Ultra-rare / Destiny Mark (~1/100,000)</option>
+      </select>
+    </div>
+
+    <div class="score-preview">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px" id="oddsDisplay">Odds: —</div>
+      <div class="preview-num" id="previewNum">—</div>
+      <div class="preview-pts">points</div>
+      <div class="preview-breakdown" id="previewBreakdown"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCatch()">Save Catch</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// BST TABLE
+// ============================================================
+const BST = {"bulbasaur":318,"ivysaur":405,"venusaur":525,"charmander":309,"charmeleon":405,"charizard":534,"squirtle":314,"wartortle":405,"blastoise":530,"caterpie":195,"metapod":205,"butterfree":395,"weedle":195,"kakuna":205,"beedrill":395,"pidgey":251,"pidgeotto":349,"pidgeot":479,"rattata":253,"raticate":413,"spearow":262,"fearow":442,"ekans":288,"arbok":438,"pikachu":320,"raichu":485,"sandshrew":300,"sandslash":450,"nidoran-f":275,"nidorina":365,"nidoqueen":505,"nidoran-m":273,"nidorino":365,"nidoking":505,"clefairy":323,"clefable":483,"vulpix":299,"ninetales":505,"jigglypuff":270,"wigglytuff":435,"zubat":245,"golbat":455,"oddish":320,"gloom":395,"vileplume":490,"paras":285,"parasect":405,"venonat":305,"venomoth":450,"diglett":265,"dugtrio":425,"meowth":290,"persian":440,"psyduck":320,"golduck":500,"mankey":305,"primeape":455,"growlithe":350,"arcanine":555,"poliwag":300,"poliwhirl":385,"poliwrath":510,"abra":310,"kadabra":400,"alakazam":500,"machop":305,"machoke":405,"machamp":505,"bellsprout":300,"weepinbell":390,"victreebel":490,"tentacool":335,"tentacruel":515,"geodude":300,"graveler":390,"golem":495,"ponyta":410,"rapidash":500,"slowpoke":315,"slowbro":490,"magnemite":325,"magneton":465,"farfetchd":377,"doduo":310,"dodrio":460,"seel":325,"dewgong":475,"grimer":325,"muk":500,"shellder":305,"cloyster":525,"gastly":310,"haunter":405,"gengar":500,"onix":385,"drowzee":328,"hypno":483,"krabby":325,"kingler":475,"voltorb":330,"electrode":490,"exeggcute":325,"exeggutor":530,"cubone":320,"marowak":425,"hitmonlee":455,"hitmonchan":455,"lickitung":385,"koffing":340,"weezing":490,"rhyhorn":345,"rhydon":485,"chansey":450,"tangela":435,"kangaskhan":490,"horsea":295,"seadra":440,"goldeen":320,"seaking":450,"staryu":340,"starmie":520,"mr-mime":460,"scyther":500,"jynx":455,"electabuzz":490,"magmar":495,"pinsir":500,"tauros":490,"magikarp":200,"gyarados":540,"lapras":535,"ditto":288,"eevee":325,"vaporeon":525,"jolteon":525,"flareon":525,"porygon":395,"omanyte":355,"omastar":495,"kabuto":355,"kabutops":495,"aerodactyl":515,"snorlax":540,"articuno":580,"zapdos":580,"moltres":580,"dratini":300,"dragonair":420,"dragonite":600,"mewtwo":680,"mew":600,"chikorita":318,"bayleef":405,"meganium":525,"cyndaquil":309,"quilava":405,"typhlosion":534,"totodile":314,"croconaw":405,"feraligatr":530,"sentret":215,"furret":415,"hoothoot":262,"noctowl":452,"ledyba":265,"ledian":390,"spinarak":250,"ariados":400,"crobat":535,"chinchou":330,"lanturn":460,"pichu":205,"cleffa":218,"igglybuff":210,"togepi":245,"togetic":405,"natu":320,"xatu":470,"mareep":280,"flaaffy":365,"ampharos":510,"bellossom":490,"marill":250,"azumarill":420,"sudowoodo":410,"politoed":500,"hoppip":250,"skiploom":340,"jumpluff":460,"aipom":360,"sunkern":180,"sunflora":425,"yanma":390,"wooper":210,"quagsire":430,"espeon":525,"umbreon":525,"murkrow":405,"slowking":490,"misdreavus":435,"unown":336,"wobbuffet":405,"girafarig":455,"pineco":205,"forretress":465,"dunsparce":415,"gligar":430,"steelix":510,"snubbull":300,"granbull":450,"qwilfish":430,"scizor":500,"shuckle":505,"heracross":500,"sneasel":430,"teddiursa":330,"ursaring":500,"slugma":250,"magcargo":430,"swinub":250,"piloswine":450,"corsola":380,"remoraid":300,"octillery":480,"delibird":330,"mantine":465,"skarmory":465,"houndour":330,"houndoom":500,"kingdra":540,"phanpy":330,"donphan":500,"porygon2":515,"stantler":465,"smeargle":250,"tyrogue":290,"hitmontop":455,"smoochum":305,"elekid":360,"magby":365,"miltank":490,"blissey":540,"raikou":580,"entei":580,"suicune":580,"larvitar":300,"pupitar":410,"tyranitar":600,"lugia":680,"ho-oh":680,"celebi":600,"treecko":310,"grovyle":405,"sceptile":530,"torchic":310,"combusken":405,"blaziken":530,"mudkip":314,"marshtomp":405,"swampert":535,"poochyena":220,"mightyena":420,"zigzagoon":240,"linoone":420,"wurmple":195,"silcoon":205,"beautifly":395,"cascoon":205,"dustox":385,"lotad":220,"lombre":340,"ludicolo":480,"seedot":220,"nuzleaf":340,"shiftry":480,"taillow":270,"swellow":455,"wingull":270,"pelipper":430,"ralts":198,"kirlia":278,"gardevoir":518,"surskit":269,"masquerain":454,"shroomish":295,"breloom":460,"slakoth":280,"vigoroth":440,"slaking":670,"nincada":266,"ninjask":456,"shedinja":236,"whismur":275,"loudred":360,"exploud":490,"makuhita":237,"hariyama":474,"azurill":190,"nosepass":375,"skitty":260,"delcatty":400,"sableye":380,"mawile":380,"aron":330,"lairon":430,"aggron":530,"meditite":280,"medicham":410,"electrike":295,"manectric":475,"plusle":405,"minun":405,"volbeat":430,"illumise":430,"roselia":400,"gulpin":302,"swalot":467,"carvanha":305,"sharpedo":460,"wailmer":400,"wailord":500,"numel":305,"camerupt":460,"torkoal":470,"spoink":330,"grumpig":470,"spinda":360,"trapinch":290,"vibrava":340,"flygon":520,"cacnea":335,"cacturne":475,"swablu":310,"altaria":490,"zangoose":458,"seviper":458,"lunatone":460,"solrock":460,"barboach":288,"whiscash":468,"corphish":308,"crawdaunt":468,"baltoy":300,"claydol":500,"lileep":355,"cradily":495,"anorith":355,"armaldo":495,"feebas":200,"milotic":540,"castform":420,"kecleon":440,"shuppet":295,"banette":455,"duskull":295,"dusclops":455,"tropius":460,"chimecho":455,"absol":465,"wynaut":210,"snorunt":300,"glalie":480,"spheal":290,"sealeo":410,"walrein":530,"clamperl":345,"huntail":485,"gorebyss":485,"relicanth":485,"luvdisc":330,"bagon":300,"shelgon":390,"salamence":600,"beldum":300,"metang":420,"metagross":600,"regirock":580,"regice":580,"registeel":580,"latias":600,"latios":600,"kyogre":670,"groudon":670,"rayquaza":680,"jirachi":600,"deoxys":600,"turtwig":318,"grotle":405,"torterra":525,"chimchar":309,"monferno":405,"infernape":534,"piplup":314,"prinplup":405,"empoleon":530,"starly":245,"staravia":340,"staraptor":485,"bidoof":250,"bibarel":410,"kricketot":194,"kricketune":384,"shinx":263,"luxio":363,"luxray":523,"budew":280,"roserade":515,"cranidos":290,"rampardos":495,"shieldon":305,"bastiodon":495,"burmy":224,"wormadam":424,"mothim":424,"combee":244,"vespiquen":474,"pachirisu":405,"buizel":330,"floatzel":495,"cherubi":275,"cherrim":450,"shellos":325,"gastrodon":475,"ambipom":482,"drifloon":348,"drifblim":498,"buneary":350,"lopunny":480,"mismagius":495,"honchkrow":505,"glameow":310,"purugly":452,"chingling":285,"stunky":329,"skuntank":479,"bronzor":300,"bronzong":500,"bonsly":290,"mime-jr":310,"happiny":220,"chatot":411,"spiritomb":485,"gible":300,"gabite":410,"garchomp":600,"munchlax":390,"riolu":285,"lucario":525,"hippopotas":330,"hippowdon":525,"skorupi":330,"drapion":500,"croagunk":300,"toxicroak":490,"carnivine":454,"finneon":330,"lumineon":460,"mantyke":345,"snover":334,"abomasnow":494,"weavile":510,"magnezone":535,"lickilicky":515,"rhyperior":535,"tangrowth":535,"electivire":540,"magmortar":540,"togekiss":545,"yanmega":515,"leafeon":525,"glaceon":525,"gliscor":510,"mamoswine":530,"porygon-z":535,"gallade":518,"probopass":525,"dusknoir":525,"froslass":480,"rotom":440,"uxie":580,"mesprit":580,"azelf":580,"dialga":680,"palkia":680,"heatran":600,"regigigas":670,"giratina":680,"cresselia":600,"phione":480,"manaphy":600,"darkrai":600,"shaymin":600,"arceus":720,"victini":600,"snivy":308,"servine":413,"serperior":528,"tepig":308,"pignite":418,"emboar":528,"oshawott":308,"dewott":413,"samurott":528,"patrat":255,"watchog":420,"lillipup":275,"herdier":370,"stoutland":500,"purrloin":281,"liepard":446,"pansage":316,"simisage":498,"pansear":316,"simisear":498,"panpour":316,"simipour":498,"munna":292,"musharna":487,"pidove":264,"tranquill":358,"unfezant":488,"blitzle":295,"zebstrika":497,"roggenrola":280,"boldore":390,"gigalith":515,"woobat":323,"swoobat":425,"drilbur":328,"excadrill":508,"audino":445,"timburr":305,"gurdurr":405,"conkeldurr":505,"tympole":294,"palpitoad":384,"seismitoad":509,"throh":465,"sawk":465,"sewaddle":310,"swadloon":380,"leavanny":500,"venipede":260,"whirlipede":360,"scolipede":485,"cottonee":280,"whimsicott":480,"petilil":280,"lilligant":480,"basculin":460,"sandile":292,"krokorok":381,"krookodile":519,"darumaka":315,"darmanitan":480,"maractus":461,"dwebble":325,"crustle":485,"scraggy":348,"scrafty":488,"sigilyph":490,"yamask":303,"cofagrigus":483,"tirtouga":355,"carracosta":495,"archen":355,"archeops":567,"trubbish":329,"garbodor":474,"zorua":330,"zoroark":510,"minccino":300,"cinccino":470,"gothita":290,"gothorita":390,"gothitelle":490,"solosis":290,"duosion":370,"reuniclus":490,"ducklett":305,"swanna":473,"vanillite":305,"vanillish":395,"vanilluxe":535,"deerling":335,"sawsbuck":475,"emolga":428,"karrablast":315,"escavalier":495,"foongus":294,"amoonguss":464,"frillish":335,"jellicent":480,"alomomola":470,"joltik":319,"galvantula":472,"ferroseed":305,"ferrothorn":489,"klink":300,"klang":440,"klinklang":520,"tynamo":275,"eelektrik":405,"eelektross":515,"elgyem":335,"beheeyem":485,"litwick":275,"lampent":370,"chandelure":520,"axew":320,"fraxure":410,"haxorus":540,"cubchoo":305,"beartic":505,"cryogonal":485,"shelmet":305,"accelgor":495,"stunfisk":471,"mienfoo":305,"mienshao":510,"druddigon":485,"golett":303,"golurk":483,"pawniard":340,"bisharp":490,"bouffalant":490,"rufflet":350,"braviary":510,"vullaby":319,"mandibuzz":470,"heatmor":484,"durant":484,"deino":300,"zweilous":420,"hydreigon":600,"larvesta":360,"volcarona":550,"cobalion":580,"terrakion":580,"virizion":580,"tornadus":580,"thundurus":580,"reshiram":680,"zekrom":680,"landorus":600,"kyurem":660,"keldeo":580,"meloetta":600,"genesect":600,"chespin":313,"quilladin":405,"chesnaught":530,"fennekin":307,"braixen":409,"delphox":534,"froakie":314,"frogadier":405,"greninja":530,"bunnelby":237,"diggersby":423,"fletchling":278,"fletchinder":382,"talonflame":499,"scatterbug":200,"spewpa":213,"vivillon":411,"litleo":329,"pyroar":507,"flabebe":278,"floette":371,"florges":552,"skiddo":350,"gogoat":531,"pancham":348,"pangoro":495,"furfrou":472,"espurr":355,"meowstic":466,"honedge":325,"doublade":448,"aegislash":500,"spritzee":341,"aromatisse":462,"swirlix":341,"slurpuff":480,"inkay":288,"malamar":482,"binacle":306,"barbaracle":500,"skrelp":320,"dragalge":494,"clauncher":330,"clawitzer":500,"helioptile":289,"heliolisk":481,"tyrunt":362,"tyrantrum":521,"amaura":362,"aurorus":521,"sylveon":525,"hawlucha":500,"dedenne":431,"carbink":500,"goomy":300,"sliggoo":452,"goodra":600,"klefki":470,"phantump":309,"trevenant":474,"pumpkaboo":335,"gourgeist":494,"bergmite":304,"avalugg":514,"noibat":245,"noivern":535,"xerneas":680,"yveltal":680,"zygarde":600,"diancie":600,"hoopa":600,"volcanion":600,"rowlet":320,"dartrix":420,"decidueye":530,"litten":320,"torracat":420,"incineroar":530,"popplio":320,"brionne":420,"primarina":530,"pikipek":265,"trumbeak":355,"toucannon":485,"yungoos":253,"gumshoos":418,"grubbin":223,"charjabug":353,"vikavolt":500,"crabrawler":338,"crabominable":478,"oricorio":476,"cutiefly":304,"ribombee":464,"rockruff":280,"lycanroc":487,"wishiwashi":175,"mareanie":305,"toxapex":495,"mudbray":350,"mudsdale":500,"dewpider":269,"araquanid":454,"fomantis":280,"lurantis":480,"morelull":285,"shiinotic":405,"salandit":320,"salazzle":480,"stufful":335,"bewear":500,"bounsweet":221,"steenee":290,"tsareena":510,"comfey":485,"oranguru":490,"passimian":490,"wimpod":230,"golisopod":530,"sandygast":320,"palossand":480,"pyukumuku":410,"type-null":534,"silvally":570,"minior":440,"komala":480,"turtonator":485,"togedemaru":435,"mimikyu":476,"bruxish":475,"drampa":485,"dhelmise":517,"jangmo-o":300,"hakamo-o":420,"kommo-o":600,"tapu-koko":570,"tapu-lele":570,"tapu-bulu":570,"tapu-fini":570,"cosmog":200,"cosmoem":400,"solgaleo":680,"lunala":680,"nihilego":570,"buzzwole":570,"pheromosa":570,"xurkitree":570,"celesteela":570,"kartana":570,"guzzlord":570,"necrozma":600,"magearna":600,"marshadow":600,"poipole":420,"naganadel":540,"stakataka":570,"blacephalon":570,"zeraora":600,"meltan":300,"melmetal":600,"grookey":314,"thwackey":405,"rillaboom":530,"scorbunny":310,"raboot":405,"cinderace":530,"sobble":310,"drizzile":405,"inteleon":530,"skwovet":275,"greedent":460,"rookidee":245,"corvisquire":365,"corviknight":495,"blipbug":180,"dottler":335,"orbeetle":495,"nickit":245,"thievul":390,"gossifleur":250,"eldegoss":460,"wooloo":270,"dubwool":430,"chewtle":284,"drednaw":485,"yamper":270,"boltund":490,"rolycoly":240,"carkol":410,"coalossal":510,"applin":260,"flapple":485,"appletun":485,"silicobra":252,"sandaconda":452,"cramorant":430,"arrokuda":280,"barraskewda":463,"toxel":242,"toxtricity":502,"sizzlipede":305,"centiskorch":525,"clobbopus":310,"grapploct":480,"sinistea":308,"polteageist":508,"hatenna":265,"hattrem":370,"hatterene":510,"impidimp":256,"morgrem":348,"grimmsnarl":510,"obstagoon":520,"perrserker":440,"cursola":510,"sirfetchd":507,"mr-rime":520,"runerigus":483,"milcery":270,"alcremie":495,"falinks":470,"pincurchin":435,"snom":185,"frosmoth":475,"stonjourner":470,"eiscue":470,"indeedee":475,"morpeko":442,"cufant":330,"copperajah":500,"dracozolt":505,"arctozolt":505,"dracovish":505,"arctovish":505,"duraludon":535,"dreepy":270,"drakloak":410,"dragapult":600,"zacian":670,"zamazenta":670,"eternatus":690,"kubfu":385,"urshifu":550,"zarude":600,"regieleki":580,"regidrago":580,"glastrier":580,"spectrier":580,"calyrex":500,"wyrdeer":525,"kleavor":500,"ursaluna":550,"basculegion":530,"sneasler":510,"overqwil":510,"enamorus":580,"sprigatito":310,"floragato":410,"meowscarada":530,"fuecoco":310,"crocalor":411,"skeledirge":530,"quaxly":310,"quaxwell":410,"quaquaval":530,"lechonk":254,"oinkologne":489,"tarountula":210,"spidops":404,"nymble":210,"lokix":450,"pawmi":240,"pawmo":350,"pawmot":490,"tandemaus":305,"maushold":470,"fidough":244,"dachsbun":477,"smoliv":244,"dolliv":354,"arboliva":510,"squawkabilly":417,"nacli":280,"naclstack":375,"garganacl":500,"charcadet":285,"armarouge":525,"ceruledge":525,"tadbulb":247,"bellibolt":495,"wattrel":280,"kilowattrel":490,"maschiff":293,"mabosstiff":505,"shroodle":245,"grafaiai":485,"bramblin":275,"brambleghast":480,"toedscool":335,"toedscruel":515,"klawf":440,"capsakid":304,"scovillain":486,"rellor":270,"rabsca":470,"flittle":255,"espathra":481,"tinkatink":297,"tinkatuff":380,"tinkaton":506,"wiglett":245,"wugtrio":425,"bombirdier":469,"finizen":315,"palafin":457,"varoom":300,"revavroom":500,"cyclizar":421,"orthworm":480,"glimmet":350,"glimmora":525,"greavard":290,"houndstone":490,"flamigo":470,"cetoddle":334,"cetitan":519,"veluza":478,"dondozo":530,"tatsugiri":475,"annihilape":535,"clodsire":430,"farigiraf":520,"dudunsparce":520,"kingambit":550,"great-tusk":570,"scream-tail":570,"brute-bonnet":570,"flutter-mane":570,"slither-wing":570,"sandy-shocks":570,"iron-treads":570,"iron-bundle":570,"iron-hands":570,"iron-jugulis":570,"iron-moth":570,"iron-thorns":570,"frigibax":320,"arctibax":410,"baxcalibur":600,"gimmighoul":300,"gholdengo":550,"wo-chien":570,"chien-pao":570,"ting-lu":570,"chi-yu":570,"roaring-moon":590,"iron-valiant":590,"koraidon":670,"miraidon":670,"walking-wake":590,"iron-leaves":590,"dipplin":485,"poltchageist":308,"sinistcha":508,"okidogi":555,"munkidori":555,"fezandipiti":555,"ogerpon":550,"raging-bolt":590,"iron-boulder":590,"iron-crown":590,"terapagos":600,"pecharunt":600};
+
+// ============================================================
+// SQUARES
+// ============================================================
+const SQUARES = [
+  {name:"Full odds encounter",game:"Any"},
+  {name:"Egg hatch",game:"Any"},
+  {name:"Safari Zone shiny",game:"FR/LG"},
+  {name:"Game Corner shiny",game:"FR/LG"},
+  {name:"Catch combo shiny",game:"Let's Go"},
+  {name:"Dynamax legendary",game:"Sword/Shield"},
+  {name:"Poké Radar chain",game:"BD/SP"},
+  {name:"Underground zone encounter",game:"BD/SP"},
+  {name:"Shiny alpha — random area",game:"Legends Arceus",laArea:true},
+  {name:"Shiny alpha — Z-A Zone #1",game:"Legends Z-A",zaZone:true,zaSlot:0},
+  {name:"Shiny alpha — Z-A Zone #2",game:"Legends Z-A",zaZone:true,zaSlot:1},
+  {name:"Shiny alpha — Z-A Zone #3",game:"Legends Z-A",zaZone:true,zaSlot:2},
+  {name:"Sandwich method shiny",game:"S/V"},
+  {name:"Fishing encounter",game:"Any"},
+  {name:"Shiny fossil",game:"Any"},
+  {name:"Random dex hunt #1",game:"Any (1–1025)",spin:true,slot:0},
+  {name:"Journey shiny",game:"Legends Arceus"},
+  {name:"Journey shiny",game:"S/V"},
+  {name:"Dynamax shiny — non-legendary",game:"Sword/Shield"},
+  {name:"Random dex hunt #2",game:"Any (1–1025)",spin:true,slot:1},
+  {name:"Random dex hunt #3",game:"Any (1–1025)",spin:true,slot:2},
+  {name:"Random dex hunt #4",game:"Any (1–1025)",spin:true,slot:3},
+  {name:"Random dex hunt #5",game:"Any (1–1025)",spin:true,slot:4},
+  {name:"Mass outbreak shiny",game:"Legends Arceus"},
+  {name:"Shiny in space-time distortion",game:"Legends Arceus"},
+  {name:"Mass outbreak shiny",game:"S/V"},
+  {name:"Shiny Paradox Pokémon",game:"S/V"},
+  {name:"Marked shiny — random mark #1",game:"S/S or S/V"},
+  {name:"Marked shiny — random mark #2",game:"S/S or S/V"},
+  {name:"Marked shiny — random mark #3",game:"S/S or S/V"},
+  {name:"Dynamax shiny — any",game:"Sword/Shield"},
+  {name:"Random dex hunt #6",game:"Any (1–1025)",spin:true,slot:5},
+  {name:"DexNav hunt",game:"ORAS"},
+  {name:"Friend Safari shiny",game:"X/Y"},
+  {name:"SOS chain shiny",game:"Sun/Moon/USUM"},
+  {name:"Ultra Wormhole shiny",game:"USUM"},
+];
+
+// ============================================================
+// ============================================================
+// JSONBIN SYNC
+// ============================================================
+var MASTER_KEY  = '$2a$10$y78gUbDpbg0cgnCLtYOgO.YI6kWqvi1Z0F45uFkoC2cpPACtN.G7y';
+var ACCESS_KEY  = '$2a$10$e4Jf3emy/6h4v.bbzxD4mewv7Z2sd1ERfllwYM436ScYNgbNXD.iK';
+var BIN_ID_KEY  = 'shinyBingoBinId';
+var binId       = localStorage.getItem(BIN_ID_KEY) || null;
+var syncPending = false;
+var autoRefreshInterval = null;
+
+function defaultState() {
+  return { catches:{}, dexSlots1:[null,null,null,null,null,null], dexSlots2:[null,null,null,null,null,null], laArea:null, zaZones:[null,null,null] };
+}
+
+function setSyncStatus(status, msg) {
+  var el = document.getElementById('syncStatus');
+  if (!el) return;
+  var colors = { ok:'var(--green)', err:'var(--red)', loading:'var(--gold)', idle:'var(--muted)' };
+  el.textContent = msg;
+  el.style.color = colors[status] || colors.idle;
+}
+
+async function createBin(state) {
+  setSyncStatus('loading', '⟳ Creating shared board...');
+  try {
+    var res = await fetch('https://api.jsonbin.io/v3/b', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': MASTER_KEY,
+        'X-Access-Key': ACCESS_KEY,
+        'X-Bin-Name': 'shinyBingo'
+      },
+      body: JSON.stringify(state)
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      console.error('JSONBin create error:', res.status, data);
+      setSyncStatus('err', '✗ ' + (data.message || 'Create failed (' + res.status + ')'));
+      return null;
+    }
+    binId = data.metadata.id;
+    localStorage.setItem(BIN_ID_KEY, binId);
+    setSyncStatus('ok', '✓ Board created & synced');
+    return binId;
+  } catch(e) {
+    console.error('JSONBin create exception:', e);
+    setSyncStatus('err', '✗ Network error creating board');
+    return null;
+  }
+}
+
+async function pushState(state) {
+  if (!binId) { await createBin(state); return; }
+  setSyncStatus('loading', '⟳ Saving...');
+  try {
+    await fetch('https://api.jsonbin.io/v3/b/' + binId, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': MASTER_KEY,
+        'X-Access-Key': ACCESS_KEY
+      },
+      body: JSON.stringify(state)
+    });
+    setSyncStatus('ok', '✓ Saved ' + new Date().toLocaleTimeString());
+  } catch(e) {
+    setSyncStatus('err', '✗ Save failed — changes stored locally');
+    localStorage.setItem('shinyBingo', JSON.stringify(state));
+  }
+}
+
+async function pullState() {
+  if (!binId) return null;
+  try {
+    var res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+      headers: { 'X-Master-Key': MASTER_KEY, 'X-Access-Key': ACCESS_KEY }
+    });
+    var data = await res.json();
+    return data.record || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function loadAndRender() {
+  setSyncStatus('loading', '⟳ Loading...');
+  var state;
+  if (binId) {
+    state = await pullState();
+    if (!state) {
+      // Fallback to localStorage
+      state = JSON.parse(localStorage.getItem('shinyBingo') || 'null');
+    }
+  } else {
+    // First load — check localStorage for migrating existing data
+    state = JSON.parse(localStorage.getItem('shinyBingo') || 'null');
+  }
+  if (!state) state = defaultState();
+  // Ensure all keys exist
+  if (!state.catches)   state.catches = {};
+  if (!state.dexSlots1) state.dexSlots1 = [null,null,null,null,null,null];
+  if (!state.dexSlots2) state.dexSlots2 = [null,null,null,null,null,null];
+  if (!state.laArea)    state.laArea = null;
+  if (!state.zaZones)   state.zaZones = [null,null,null];
+  // Cache locally
+  localStorage.setItem('shinyBingo', JSON.stringify(state));
+  if (!binId) await createBin(state);
+  else setSyncStatus('ok', '✓ Loaded ' + new Date().toLocaleTimeString());
+  renderWithState(state);
+  startAutoRefresh();
+}
+
+function startAutoRefresh() {
+  if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+  autoRefreshInterval = setInterval(async function() {
+    if (document.hidden) return; // don't refresh if tab not visible
+    var state = await pullState();
+    if (!state) return;
+    localStorage.setItem('shinyBingo', JSON.stringify(state));
+    renderWithState(state);
+    setSyncStatus('ok', '✓ Refreshed ' + new Date().toLocaleTimeString());
+  }, 30000); // every 30 seconds
+}
+
+// ============================================================
+// STATE — now JSONBin-backed with localStorage fallback
+// ============================================================
+function loadState() {
+  try { return JSON.parse(localStorage.getItem('shinyBingo') || '{}'); } catch(e) { return {}; }
+}
+function saveState(state) {
+  // Write locally immediately so UI is snappy, then push to JSONBin
+  localStorage.setItem('shinyBingo', JSON.stringify(state));
+  pushState(state);
+}
+function getState() {
+  var s = loadState();
+  if (!s.catches)   s.catches = {};
+  if (!s.dexSlots1) s.dexSlots1 = [null,null,null,null,null,null];
+  if (!s.dexSlots2) s.dexSlots2 = [null,null,null,null,null,null];
+  if (!s.laArea)    s.laArea = null;
+  if (!s.zaZones)   s.zaZones = [null,null,null];
+  return s;
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+// GAME METHODS CONFIG — verified from RotomLabs & Bulbapedia
+// ============================================================
+var GAMES = {
+  frlg: {
+    label: "FireRed / LeafGreen",
+    methods: [
+      {id:"wild",       label:"Wild encounter"},
+      {id:"safari",     label:"Safari Zone encounter"},
+      {id:"static",     label:"Static encounter (e.g. Mewtwo, Snorlax)"},
+      {id:"fish",       label:"Fishing encounter"},
+      {id:"gamecorner", label:"Game Corner Pokémon"},
+    ],
+    boosters: [],
+    getOdds: function(method, b) { return 8192; } // no Shiny Charm in Gen 3
+  },
+  lgpe: {
+    label: "Let's Go Pikachu / Eevee",
+    methods: [
+      {id:"wild",   label:"Wild encounter"},
+      {id:"static", label:"Static encounter (Snorlax, Birds, Mewtwo) — combo N/A"},
+    ],
+    boosters: [
+      {id:"charm", label:"Shiny Charm", type:"check"},
+      {id:"lure",  label:"Lure active", type:"check"},
+      {id:"combo", label:"Catch Combo", type:"select", options:[
+        {value:"0",  label:"No combo (0–10) — base odds"},
+        {value:"11", label:"Combo 11–20"},
+        {value:"21", label:"Combo 21–30"},
+        {value:"31", label:"Combo 31+"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'static') return b.charm ? 1365.67 : 4096;
+      var rolls = 1;
+      if (b.charm) rolls += 2;
+      if (b.lure)  rolls += 1;
+      var c = parseInt(b.combo || 0);
+      if (c >= 31) rolls += 5;
+      else if (c >= 21) rolls += 4;
+      else if (c >= 11) rolls += 2;
+      return oddsFromRolls(rolls);
+    }
+  },
+  bdsp: {
+    label: "Brilliant Diamond / Shining Pearl",
+    methods: [
+      {id:"wild",       label:"Wild encounter (Shiny Charm NOT applicable)"},
+      {id:"radar",      label:"Poké Radar chain"},
+      {id:"underground",label:"Grand Underground"},
+      {id:"egg",        label:"Egg hatch"},
+      {id:"masuda",     label:"Egg — Masuda Method"},
+      {id:"static",     label:"Static encounter (Shiny Charm NOT applicable)"},
+    ],
+    boosters: [
+      {id:"charm",      label:"Shiny Charm", type:"check", note:"Only helps eggs & Underground"},
+      {id:"diglett",    label:"Underground Diglett Bonus", type:"check", show:["underground"]},
+      {id:"radarchain", label:"Poké Radar chain length", type:"select", show:["radar"], options:[
+        {value:"0",  label:"Chain 0–19 (1/4096)"},
+        {value:"20", label:"Chain 20–29 (~1/2048)"},
+        {value:"30", label:"Chain 30–39 (~1/1366)"},
+        {value:"40", label:"Chain 40+ (~1/25 effective, 4 patches)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'wild' || method === 'static') return 4096;
+      if (method === 'underground') return b.diglett ? 2048.25 : 4096;
+      if (method === 'radar') {
+        var c = parseInt(b.radarchain || 0);
+        if (c >= 40) return 25; if (c >= 30) return 1366; if (c >= 20) return 2048;
+        return 4096;
+      }
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      return 4096;
+    }
+  },
+  swsh: {
+    label: "Sword / Shield",
+    methods: [
+      {id:"wild",   label:"Wild encounter"},
+      {id:"raid",   label:"Max Raid (Shiny Charm NOT applicable — 1/4096 flat)"},
+      {id:"dadv",   label:"Dynamax Adventure"},
+      {id:"egg",    label:"Egg hatch"},
+      {id:"masuda", label:"Egg — Masuda Method"},
+    ],
+    boosters: [
+      {id:"charm", label:"Shiny Charm", type:"check", note:"No effect on raids"},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'raid')   return 4096;
+      if (method === 'dadv')   return b.charm ? 100 : 300;
+      if (method === 'wild')   return b.charm ? 1365.67 : 4096;
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      return 4096;
+    }
+  },
+  la: {
+    label: "Legends: Arceus",
+    methods: [
+      {id:"wild", label:"Wild encounter / Alpha"},
+      {id:"mo",   label:"Mass Outbreak"},
+      {id:"mmo",  label:"Massive Mass Outbreak (MMO)"},
+    ],
+    boosters: [
+      {id:"charm",   label:"Shiny Charm (+3 rolls)", type:"check"},
+      {id:"dex10",   label:"Pokédex Research Lv. 10 (+1 roll)", type:"check"},
+      {id:"dexperf", label:"Pokédex Research Perfect (+2 more rolls)", type:"check", note:"Requires Lv.10"},
+    ],
+    getOdds: function(method, b) {
+      var rolls = 1;
+      if (b.dex10)   rolls += 1;
+      if (b.dexperf) rolls += 2;
+      if (b.charm)   rolls += 3;
+      if (method === 'mo')  rolls += 25;
+      if (method === 'mmo') rolls += 12;
+      return oddsFromRolls(rolls);
+    }
+  },
+  lza: {
+    label: "Legends: Z-A",
+    methods: [
+      {id:"wild",   label:"Wild encounter / Alpha"},
+      {id:"fossil", label:"Fossil encounter (Shiny Charm NOT applicable)"},
+    ],
+    boosters: [
+      {id:"charm", label:"Shiny Charm (+3 rolls)", type:"check"},
+      {id:"spark", label:"Sparkling Power (Hyperspace Distortion)", type:"select", options:[
+        {value:"0", label:"No Sparkling Power"},
+        {value:"1", label:"Sparkling Power Lv. 1 (+1 roll)"},
+        {value:"2", label:"Sparkling Power Lv. 2 (+2 rolls)"},
+        {value:"3", label:"Sparkling Power Lv. 3 (+3 rolls)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'fossil') return 4096;
+      var rolls = 1;
+      if (b.charm) rolls += 3;
+      rolls += parseInt(b.spark || 0);
+      return oddsFromRolls(rolls);
+    }
+  },
+  sv: {
+    label: "Scarlet / Violet",
+    methods: [
+      {id:"wild",     label:"Wild encounter"},
+      {id:"outbreak", label:"Mass Outbreak"},
+      {id:"raid",     label:"Tera Raid (no charm bonus — 1/4103 flat)"},
+      {id:"egg",      label:"Egg hatch"},
+      {id:"masuda",   label:"Egg — Masuda Method"},
+    ],
+    boosters: [
+      {id:"charm",         label:"Shiny Charm", type:"check", note:"No effect on Tera Raids"},
+      {id:"sandwich",      label:"Sparkling Power sandwich level", type:"select", show:["wild","outbreak"], options:[
+        {value:"0", label:"No sandwich"},
+        {value:"1", label:"Sparkling Power Lv. 1 (+1 roll)"},
+        {value:"2", label:"Sparkling Power Lv. 2 (+2 rolls)"},
+        {value:"3", label:"Sparkling Power Lv. 3 (+3 rolls)"},
+      ]},
+      {id:"outbreak_size", label:"Outbreak size", type:"select", show:["outbreak"], options:[
+        {value:"0",  label:"No outbreak / under 30"},
+        {value:"30", label:"Outbreak 30–59 Pokémon (+1 roll)"},
+        {value:"60", label:"Outbreak 60+ Pokémon (+2 rolls)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'raid')   return 4103.05;
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      var rolls = 1;
+      if (b.charm) rolls += 2;
+      rolls += parseInt(b.sandwich || 0);
+      if (method === 'outbreak') {
+        var os = parseInt(b.outbreak_size || 0);
+        if (os >= 60) rolls += 2; else if (os >= 30) rolls += 1;
+      }
+      return oddsFromRolls(rolls);
+    }
+  },
+  oras: {
+    label: "Omega Ruby / Alpha Sapphire",
+    methods: [
+      {id:"wild",    label:"Wild encounter"},
+      {id:"dexnav",  label:"DexNav encounter"},
+      {id:"fish",    label:"Fishing encounter"},
+      {id:"horde",   label:"Horde encounter (5 at once, ~5× odds)"},
+      {id:"egg",     label:"Egg hatch"},
+      {id:"masuda",  label:"Egg — Masuda Method"},
+      {id:"static",  label:"Static encounter"},
+    ],
+    boosters: [
+      {id:"charm",      label:"Shiny Charm", type:"check"},
+      {id:"dexnav_chain", label:"DexNav chain length", type:"select", show:["dexnav"], options:[
+        {value:"0",  label:"Chain 0–4 (base odds ~1/4096)"},
+        {value:"5",  label:"Chain 5–19 (slight boost ~1/2048)"},
+        {value:"20", label:"Chain 20–49 (~1/1024)"},
+        {value:"50", label:"Chain 50–99 (bonus rolls at 50, ~1/512)"},
+        {value:"100",label:"Chain 100+ (max bonus rolls, ~1/200)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'horde') return b.charm ? 273 : 820; // 5 checks per encounter
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      if (method === 'static' || method === 'wild' || method === 'fish') return b.charm ? 1365.67 : 4096;
+      if (method === 'dexnav') {
+        // Base rolls: 1 (+ 2 if charm). Chain bonuses at 50 (+5) and 100 (+10)
+        var rolls = 1;
+        if (b.charm) rolls += 2;
+        var chain = parseInt(b.dexnav_chain || 0);
+        if (chain >= 100) rolls += 10;
+        else if (chain >= 50) rolls += 5;
+        else if (chain >= 20) rolls += 2;
+        else if (chain >= 5)  rolls += 1;
+        return oddsFromRolls(rolls);
+      }
+      return b.charm ? 1365.67 : 4096;
+    }
+  },
+  xy: {
+    label: "X / Y",
+    methods: [
+      {id:"wild",    label:"Wild encounter"},
+      {id:"safari",  label:"Friend Safari (~1/820, Shiny Charm has no extra effect)"},
+      {id:"radar",   label:"Poké Radar chain (40+ chain ~1/200)"},
+      {id:"horde",   label:"Horde encounter (~5× odds)"},
+      {id:"fish",    label:"Chain fishing"},
+      {id:"egg",     label:"Egg hatch"},
+      {id:"masuda",  label:"Egg — Masuda Method"},
+    ],
+    boosters: [
+      {id:"charm", label:"Shiny Charm", type:"check", note:"No effect in Friend Safari"},
+      {id:"radarchain", label:"Poké Radar chain length", type:"select", show:["radar"], options:[
+        {value:"0",  label:"Chain 0–19 (base)"},
+        {value:"20", label:"Chain 20–29"},
+        {value:"30", label:"Chain 30–39"},
+        {value:"40", label:"Chain 40+ (~1/200)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      // Friend Safari: exactly 5/4096 ≈ 1/820, Shiny Charm confirmed no extra effect
+      if (method === 'safari') return 820;
+      if (method === 'horde')  return b.charm ? 273 : 820;
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      if (method === 'fish')   return b.charm ? 1365.67 : 4096; // chain fishing is method, no separate boosters
+      if (method === 'radar') {
+        var chain = parseInt(b.radarchain || 0);
+        if (chain >= 40) return b.charm ? 134 : 200;
+        if (chain >= 30) return b.charm ? 910 : 1366;
+        if (chain >= 20) return b.charm ? 1365 : 2048;
+        return b.charm ? 1365.67 : 4096;
+      }
+      return b.charm ? 1365.67 : 4096;
+    }
+  },
+  usum: {
+    label: "Ultra Sun / Ultra Moon",
+    methods: [
+      {id:"sos",       label:"SOS chain"},
+      {id:"wormhole",  label:"Ultra Wormhole (non-legendary only)"},
+      {id:"wild",      label:"Wild encounter"},
+      {id:"egg",       label:"Egg hatch"},
+      {id:"masuda",    label:"Egg — Masuda Method"},
+    ],
+    boosters: [
+      {id:"charm", label:"Shiny Charm", type:"check", note:"No effect on wormhole non-legendary odds"},
+      {id:"soschain", label:"SOS chain length", type:"select", show:["sos"], options:[
+        {value:"0",  label:"Chain 0–9 (1/4096)"},
+        {value:"10", label:"Chain 10–19 (~1/3277)"},
+        {value:"20", label:"Chain 20–29 (~1/2048)"},
+        {value:"30", label:"Chain 30–69 (~1/1365)"},
+        {value:"70", label:"Chain 70+ (1/1024, charm: 1/683)"},
+      ]},
+      {id:"wormhole_rings", label:"Wormhole ring count", type:"select", show:["wormhole"], options:[
+        {value:"0", label:"No rings (1% shiny)"},
+        {value:"1", label:"1 ring (scales with distance, cap 10%)"},
+        {value:"2", label:"2 rings (scales with distance, cap 19%)"},
+        {value:"3", label:"3 rings / aura (scales with distance, cap 36%)"},
+      ]},
+      {id:"wormhole_ly", label:"Light years traveled", type:"select", show:["wormhole"], options:[
+        {value:"0",    label:"< 500 LY"},
+        {value:"500",  label:"500–999 LY"},
+        {value:"1000", label:"1,000–2,499 LY"},
+        {value:"2500", label:"2,500–4,999 LY"},
+        {value:"5000", label:"5,000+ LY (near max odds)"},
+      ]},
+    ],
+    getOdds: function(method, b) {
+      if (method === 'egg')    return b.charm ? 2048.25 : 4096;
+      if (method === 'masuda') return b.charm ? 512.44 : 683.08;
+      if (method === 'wild')   return b.charm ? 1365.67 : 4096;
+      if (method === 'sos') {
+        var chain = parseInt(b.soschain || 0);
+        if (chain >= 70) return b.charm ? 683 : 1024;
+        if (chain >= 30) return b.charm ? 1024 : 1365;
+        if (chain >= 20) return b.charm ? 1365 : 2048;
+        if (chain >= 10) return b.charm ? 2048 : 3277;
+        return b.charm ? 1365.67 : 4096;
+      }
+      if (method === 'wormhole') {
+        // Odds are percentage-based: d = floor(LY/500) - 1, capped at 9
+        var ly = parseInt(b.wormhole_ly || 0);
+        var rings = parseInt(b.wormhole_rings || 0);
+        var d = Math.min(9, Math.max(0, Math.floor(ly / 500) - 1));
+        var pct;
+        if (rings === 0) pct = 1;
+        else if (rings === 1) pct = Math.min(10, 1 + d);
+        else if (rings === 2) pct = Math.min(19, 1 + 2*d);
+        else pct = Math.min(36, 4*d); // 3-ring
+        if (pct <= 0) pct = 1;
+        return Math.round(100 / pct);
+      }
+      return b.charm ? 1365.67 : 4096;
+    }
+  }
+};
+
+function oddsFromRolls(rolls) {
+  if (rolls <= 1) return 4096;
+  var p = 1 - Math.pow(4095/4096, rolls);
+  return Math.round(1 / p);
+}
+
+function bstMult(bst) {
+  if (bst >= 600) return 2.5;
+  if (bst >= 500) return 2.0;
+  if (bst >= 400) return 1.5;
+  return 1.0;
+}
+
+function oddsToMethodScore(odds) {
+  return Math.round(Math.log2(8192 / odds) * 100);
+}
+
+function calcScore(odds, bst, mark) {
+  return Math.round(oddsToMethodScore(odds) * bstMult(bst) * parseFloat(mark));
+}
+
+function lookupBST(name) {
+  return BST[name.toLowerCase().trim()] || null;
+}
+
+// ============================================================
+// MODAL DYNAMIC FORM
+// ============================================================
+var currentSquare = null, currentPlayer = null;
+
+function buildMethodSelect() {
+  var game = document.getElementById('fGame').value;
+  var cfg = GAMES[game];
+  document.getElementById('fMethod').innerHTML = cfg.methods.map(function(m) {
+    return '<option value="' + m.id + '">' + m.label + '</option>';
+  }).join('');
+}
+
+function buildBoosters() {
+  var game = document.getElementById('fGame').value;
+  var method = document.getElementById('fMethod').value;
+  var cfg = GAMES[game];
+  var sec = document.getElementById('boosterSection');
+  if (!cfg.boosters || cfg.boosters.length === 0) { sec.innerHTML = ''; return; }
+  var html = '';
+  cfg.boosters.forEach(function(b) {
+    if (b.show && b.show.indexOf(method) === -1) return;
+    html += '<div class="form-group">';
+    html += '<label class="form-label">' + b.label;
+    if (b.note) html += ' <span style="font-size:9px;color:var(--muted);font-weight:400">' + b.note + '</span>';
+    html += '</label>';
+    if (b.type === 'check') {
+      html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">' +
+        '<input type="checkbox" id="b_' + b.id + '" onchange="calcPreview()" style="width:16px;height:16px;cursor:pointer"> Yes</label>';
+    } else {
+      html += '<select class="form-select" id="b_' + b.id + '" onchange="calcPreview()">';
+      b.options.forEach(function(o) { html += '<option value="' + o.value + '">' + o.label + '</option>'; });
+      html += '</select>';
+    }
+    html += '</div>';
+  });
+  sec.innerHTML = html;
+}
+
+function getBoosters() {
+  var game = document.getElementById('fGame').value;
+  var out = {};
+  (GAMES[game].boosters || []).forEach(function(b) {
+    var el = document.getElementById('b_' + b.id);
+    if (!el) return;
+    out[b.id] = b.type === 'check' ? el.checked : el.value;
+  });
+  return out;
+}
+
+function onGameChange() { buildMethodSelect(); buildBoosters(); calcPreview(); }
+function onMethodChange() { buildBoosters(); calcPreview(); }
+
+// ============================================================
+// MODAL OPEN / CLOSE / SAVE
+// ============================================================
+var currentSquare = null, currentPlayer = null;
+
+function openModal(squareIdx, player) {
+  currentSquare = squareIdx;
+  currentPlayer = player;
+  var sq = SQUARES[squareIdx];
+  var state = getState();
+  var existing = state.catches[squareIdx + '-' + player];
+
+  document.getElementById('modalTitle').textContent = sq.name;
+  document.getElementById('modalSub').textContent = sq.game + ' · ' + (player==1?'Dave':'Colton');
+  document.getElementById('fPlayer').value = player;
+  document.getElementById('fMon').value = existing ? existing.mon : '';
+  document.getElementById('fMark').value = existing ? (existing.markMult || '1.0') : '1.0';
+  document.getElementById('bstHint').textContent = 'Type a Pokémon name to look up BST';
+  document.getElementById('bstHint').className = 'bst-hint';
+
+  if (existing && existing.game) {
+    document.getElementById('fGame').value = existing.game;
+  } else {
+    // Smart default game based on square's game tag
+    var gameMap = {
+      'FR/LG': 'frlg',
+      "Let's Go": 'lgpe',
+      'BD/SP': 'bdsp',
+      'Sword/Shield': 'swsh',
+      'S/S or S/V': 'swsh',
+      'Legends Arceus': 'la',
+      'Legends Z-A': 'lza',
+      'S/V': 'sv',
+      'ORAS': 'oras',
+      'X/Y': 'xy',
+      'Sun/Moon/USUM': 'usum',
+      'USUM': 'usum',
+    };
+    var defaultGame = gameMap[sq.game] || 'sv';
+    document.getElementById('fGame').value = defaultGame;
+  }
+  buildMethodSelect();
+  if (existing && existing.method) {
+    document.getElementById('fMethod').value = existing.method;
+  } else {
+    // Smart default method based on square name
+    var sqNameLower = sq.name.toLowerCase();
+    var methodSel = document.getElementById('fMethod');
+    if (sqNameLower.includes('egg')) {
+      // Try to select masuda or egg method
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'egg') { methodSel.value = 'egg'; break; }
+      }
+    } else if (sqNameLower.includes('masuda')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'masuda') { methodSel.value = 'masuda'; break; }
+      }
+    } else if (sqNameLower.includes('radar')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'radar') { methodSel.value = 'radar'; break; }
+      }
+    } else if (sqNameLower.includes('safari')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'safari') { methodSel.value = 'safari'; break; }
+      }
+    } else if (sqNameLower.includes('game corner')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'gamecorner') { methodSel.value = 'gamecorner'; break; }
+      }
+    } else if (sqNameLower.includes('fishing') || sqNameLower.includes('fish')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'fish') { methodSel.value = 'fish'; break; }
+      }
+    } else if (sqNameLower.includes('dynamax legendary')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'dadv') { methodSel.value = 'dadv'; break; }
+      }
+    } else if (sqNameLower.includes('dynamax')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'raid') { methodSel.value = 'raid'; break; }
+      }
+    } else if (sqNameLower.includes('outbreak') || sqNameLower.includes('mass')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'mo' || methodSel.options[o].value === 'outbreak') { methodSel.value = methodSel.options[o].value; break; }
+      }
+    } else if (sqNameLower.includes('sandwich')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'wild') { methodSel.value = 'wild'; break; }
+      }
+    } else if (sqNameLower.includes('underground')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'underground') { methodSel.value = 'underground'; break; }
+      }
+    } else if (sqNameLower.includes('tera raid')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'raid') { methodSel.value = 'raid'; break; }
+      }
+    } else if (sqNameLower.includes('dexnav')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'dexnav') { methodSel.value = 'dexnav'; break; }
+      }
+    } else if (sqNameLower.includes('friend safari')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'safari') { methodSel.value = 'safari'; break; }
+      }
+    } else if (sqNameLower.includes('sos')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'sos') { methodSel.value = 'sos'; break; }
+      }
+    } else if (sqNameLower.includes('wormhole')) {
+      for (var o = 0; o < methodSel.options.length; o++) {
+        if (methodSel.options[o].value === 'wormhole') { methodSel.value = 'wormhole'; break; }
+      }
+    }
+  }
+  buildBoosters();
+  if (existing) updateBSTHint(existing.mon);
+  calcPreview();
+  document.getElementById('modal').classList.add('open');
+  setTimeout(function() { document.getElementById('fMon').focus(); }, 100);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function onMonInput() { updateBSTHint(document.getElementById('fMon').value); calcPreview(); }
+
+function updateBSTHint(name) {
+  var hint = document.getElementById('bstHint');
+  if (!name) { hint.textContent = 'Type a Pokémon name to look up BST'; hint.className = 'bst-hint'; return; }
+  var bst = lookupBST(name);
+  if (bst) {
+    hint.textContent = 'BST: ' + bst + ' → ×' + bstMult(bst) + ' multiplier';
+    hint.className = 'bst-hint found';
+  } else {
+    hint.textContent = 'Not found — try lowercase with hyphens (e.g. mr-mime, nidoran-f)';
+    hint.className = 'bst-hint notfound';
+  }
+}
+
+function calcPreview() {
+  var mon = document.getElementById('fMon').value;
+  var gameEl = document.getElementById('fGame');
+  var methodEl = document.getElementById('fMethod');
+  if (!gameEl || !methodEl) return;
+  var game = gameEl.value;
+  var method = methodEl.value;
+  var mark = parseFloat(document.getElementById('fMark').value);
+  var boosters = getBoosters();
+  var bst = lookupBST(mon);
+  var odds = GAMES[game].getOdds(method, boosters);
+  document.getElementById('oddsDisplay').textContent = 'Odds: 1/' + Math.round(odds);
+  if (!bst) {
+    document.getElementById('previewNum').textContent = '—';
+    document.getElementById('previewBreakdown').textContent = '';
+    return;
+  }
+  var ms = oddsToMethodScore(odds);
+  var score = calcScore(odds, bst, mark);
+  document.getElementById('previewNum').textContent = score;
+  document.getElementById('previewBreakdown').textContent =
+    'Method score: ' + ms + '  (1/' + Math.round(odds) + ')\nBST ' + bst + ' → ×' + bstMult(bst) + '\nMark → ×' + mark;
+}
+
+function saveCatch() {
+  var mon = document.getElementById('fMon').value.trim();
+  var player = parseInt(document.getElementById('fPlayer').value);
+  var game = document.getElementById('fGame').value;
+  var method = document.getElementById('fMethod').value;
+  var markMult = document.getElementById('fMark').value;
+  var markLabel = document.getElementById('fMark').options[document.getElementById('fMark').selectedIndex].text;
+  var boosters = getBoosters();
+
+  if (!mon) { alert('Enter a Pokémon name'); return; }
+  var bst = lookupBST(mon);
+  if (!bst) { alert('Pokémon not found. Check spelling — use lowercase with hyphens (e.g. mr-mime)'); return; }
+
+  var odds = GAMES[game].getOdds(method, boosters);
+  var score = calcScore(odds, bst, markMult);
+  var methodLabel = GAMES[game].methods.find(function(m) { return m.id === method; }).label;
+  var key = currentSquare + '-' + player;
+  var state = getState();
+  state.catches[key] = {
+    mon: mon, player: player, bst: bst,
+    game: game, gameLabel: GAMES[game].label,
+    method: method, methodLabel: methodLabel,
+    boosters: boosters,
+    mark: markLabel, markMult: markMult,
+    odds: Math.round(odds), score: score, ts: Date.now()
+  };
+  saveState(state);
+  closeModal();
+  render();
+  showToast(mon + ' (1/' + Math.round(odds) + ') → ' + score + ' pts for ' + (player==1?'Dave':'Colton'));
+}
+
+// ============================================================
+// LA AREA & ZA ZONE ROLLERS
+// ============================================================
+var LA_AREAS = [
+  "Obsidian Fieldlands",
+  "Crimson Mirelands",
+  "Cobalt Coastlands",
+  "Coronet Highlands",
+  "Alabaster Icelands"
+];
+
+var ZA_ZONES = [
+  "Wild Zone 1","Wild Zone 2","Wild Zone 3","Wild Zone 4","Wild Zone 5",
+  "Wild Zone 6","Wild Zone 7","Wild Zone 8","Wild Zone 9","Wild Zone 10",
+  "Wild Zone 11","Wild Zone 12","Wild Zone 13","Wild Zone 14","Wild Zone 15",
+  "Wild Zone 16","Wild Zone 17","Wild Zone 18","Wild Zone 19","Wild Zone 20"
+];
+
+function rollLAArea() {
+  var state = getState();
+  var rolled = LA_AREAS[Math.floor(Math.random() * LA_AREAS.length)];
+  state.laArea = rolled;
+  saveState(state);
+  render();
+  showToast('Legends Arceus area: ' + rolled);
+}
+
+function clearLAArea() {
+  var state = getState();
+  state.laArea = null;
+  saveState(state);
+  render();
+}
+
+function rollZAZone(slotIdx) {
+  var state = getState();
+  // Pick a zone not already assigned
+  var taken = state.zaZones.filter(function(z){ return z !== null; });
+  var available = ZA_ZONES.filter(function(z){ return taken.indexOf(z) === -1; });
+  if (available.length === 0) { showToast('All zones assigned!'); return; }
+  var rolled = available[Math.floor(Math.random() * available.length)];
+  state.zaZones[slotIdx] = rolled;
+  saveState(state);
+  render();
+  showToast('Z-A Zone #' + (slotIdx+1) + ': ' + rolled);
+}
+
+function clearZAZone(slotIdx) {
+  var state = getState();
+  state.zaZones[slotIdx] = null;
+  saveState(state);
+  render();
+}
+
+
+function renderWithState(state) {
+  renderScores(state);
+  renderDexSlots(state);
+  renderGrid(state);
+  renderLog(state);
+}
+
+function render() {
+  renderWithState(getState());
+}
+
+function renderScores(state) {
+  var p1 = 0, p2 = 0;
+  Object.values(state.catches).forEach(function(c) {
+    if (c.player == 1) p1 += c.score;
+    if (c.player == 2) p2 += c.score;
+  });
+  document.getElementById('p1total').textContent = p1;
+  document.getElementById('p2total').textContent = p2;
+}
+
+function renderDexSlots(state) {
+  [1, 2].forEach(function(p) {
+    var slots = state['dexSlots' + p];
+    var html = slots.map(function(v, i) {
+      return '<div class="slot-row' + (v ? ' filled' : '') + '">' +
+        '<span class="slot-num">Slot ' + (i+1) + '</span>' +
+        '<span class="slot-val">' + (v ? '#' + v : '—') + '</span>' +
+        (v ? '<button class="slot-clear" onclick="clearSlot(' + p + ',' + i + ')" title="Clear slot">✕</button>' : '') +
+      '</div>';
+    }).join('');
+    document.getElementById('dexSlots' + p).innerHTML = html;
+  });
+}
+
+function renderGrid(state) {
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  SQUARES.forEach(function(sq, i) {
+    var p1key = i + '-1', p2key = i + '-2';
+    var c1 = state.catches[p1key], c2 = state.catches[p2key];
+
+    // Dex spin target
+    var p1slots = state.dexSlots1 || [null,null,null,null,null,null];
+    var p2slots = state.dexSlots2 || [null,null,null,null,null,null];
+    var target = sq.spin && sq.slot !== undefined ?
+      'Dave: ' + (p1slots[sq.slot] ? '#'+p1slots[sq.slot] : '—') + ' · Colton: ' + (p2slots[sq.slot] ? '#'+p2slots[sq.slot] : '—') : '';
+
+    // LA area roller
+    var areaHtml = '';
+    if (sq.laArea) {
+      var area = state.laArea;
+      areaHtml = '<div style="margin:4px 0;padding:4px 6px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);font-size:10px;">' +
+        '<span style="color:var(--muted);font-size:9px;display:block;margin-bottom:2px">Assigned Area</span>' +
+        '<span style="color:var(--gold);font-weight:500">' + (area || '—') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;margin-bottom:4px">' +
+        '<button onclick="rollLAArea()" style="flex:1;font-size:9px;padding:3px 0;cursor:pointer;border-radius:4px;background:var(--surface2);border:1px solid var(--border2);color:var(--text)">🎲 Roll Area</button>' +
+        (area ? '<button onclick="clearLAArea()" style="font-size:9px;padding:3px 6px;cursor:pointer;border-radius:4px;background:none;border:1px solid var(--border);color:var(--muted)">✕</button>' : '') +
+        '</div>';
+    }
+
+    // ZA zone roller
+    var zoneHtml = '';
+    if (sq.zaZone) {
+      var zone = state.zaZones[sq.zaSlot];
+      zoneHtml = '<div style="margin:4px 0;padding:4px 6px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);font-size:10px;">' +
+        '<span style="color:var(--muted);font-size:9px;display:block;margin-bottom:2px">Assigned Zone</span>' +
+        '<span style="color:var(--gold);font-weight:500">' + (zone || '—') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;margin-bottom:4px">' +
+        '<button onclick="rollZAZone(' + sq.zaSlot + ')" style="flex:1;font-size:9px;padding:3px 0;cursor:pointer;border-radius:4px;background:var(--surface2);border:1px solid var(--border2);color:var(--text)">🎲 Roll Zone</button>' +
+        (zone ? '<button onclick="clearZAZone(' + sq.zaSlot + ')" style="font-size:9px;padding:3px 6px;cursor:pointer;border-radius:4px;background:none;border:1px solid var(--border);color:var(--muted)">✕</button>' : '') +
+        '</div>';
+    }
+
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML =
+      '<div class="cell-name">' + sq.name + '</div>' +
+      '<div class="cell-game">' + sq.game + '</div>' +
+      (target ? '<div class="cell-target">' + target + '</div>' : '') +
+      areaHtml + zoneHtml +
+      '<div class="catches">' +
+        '<div class="catch-slot' + (c1 ? ' p1' : '') + '" onclick="openModal(' + i + ',1)">' +
+          '<span class="catch-player">Dave</span>' +
+          (c1 ? '<span class="catch-mon">' + c1.mon + '</span><span class="catch-pts">' + c1.score + ' pts</span>' : '<span class="catch-add">+ log catch</span>') +
+        '</div>' +
+        '<div class="catch-slot' + (c2 ? ' p2' : '') + '" onclick="openModal(' + i + ',2)">' +
+          '<span class="catch-player">Colton</span>' +
+          (c2 ? '<span class="catch-mon">' + c2.mon + '</span><span class="catch-pts">' + c2.score + ' pts</span>' : '<span class="catch-add">+ log catch</span>') +
+        '</div>' +
+      '</div>';
+    grid.appendChild(cell);
+  });
+}
+
+function renderLog(state) {
+  var catches = Object.entries(state.catches);
+  var tbody = document.getElementById('logBody');
+  var empty = document.getElementById('emptyLog');
+  if (catches.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  catches.sort(function(a, b) { return (b[1].ts||0) - (a[1].ts||0); });
+  tbody.innerHTML = catches.map(function(entry) {
+    var key = entry[0], c = entry[1];
+    var parts = key.split('-');
+    var sqIdx = parseInt(parts[0]);
+    var sq = SQUARES[sqIdx] || {};
+    return '<tr>' +
+      '<td class="tag-p' + c.player + '">' + (c.player==1?'Dave':'Colton') + '</td>' +
+      '<td>' + (sq.name || '—') + '</td>' +
+      '<td>' + c.mon + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace">' + (c.bst||'—') + '</td>' +
+      '<td style="color:var(--muted);font-size:11px">' + (c.gameLabel||c.game||'—') + '</td>' +
+      '<td style="font-family:\'DM Mono\',monospace;color:var(--muted);font-size:11px">' + (c.odds ? '1/'+c.odds : '—') + '</td>' +
+      '<td class="pts-val">' + c.score + '</td>' +
+      '<td><button class="del-btn" onclick="deleteCatch(\'' + key + '\')">✕</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+
+
+function deleteCatch(key) {
+  if (!confirm('Delete this catch?')) return;
+  var state = getState();
+  delete state.catches[key];
+  saveState(state);
+  render();
+}
+
+// ============================================================
+// DEX ROLLER
+// ============================================================
+function rollDex(player) {
+  var state = getState();
+  var key = 'dexSlots' + player;
+  var slots = state[key];
+  var emptySlot = slots.findIndex(function(s) { return s === null; });
+  if (emptySlot === -1) { showToast((player==1?'Dave':'Colton') + ' slots full! Clear a slot to re-roll.'); return; }
+
+  var ball = document.getElementById('pokeball' + player);
+  var resultEl = document.getElementById('dexResult' + player);
+  var subEl = document.getElementById('dexSub' + player);
+  ball.classList.add('spinning');
+  var t = 0;
+  var iv = setInterval(function() {
+    var n = Math.floor(Math.random() * 1025) + 1;
+    resultEl.childNodes[0].textContent = '#' + n;
+    t++;
+    if (t > 14) {
+      clearInterval(iv);
+      ball.classList.remove('spinning');
+      var final = Math.floor(Math.random() * 1025) + 1;
+      resultEl.childNodes[0].textContent = '#' + final;
+      subEl.textContent = 'Slot ' + (emptySlot + 1) + ' assigned';
+      state[key][emptySlot] = final;
+      saveState(state);
+      render();
+      showToast((player==1?'Dave':'Colton') + ' rolled #' + final + ' → Slot ' + (emptySlot + 1));
+    }
+  }, 60);
+}
+
+function clearSlot(player, slotIdx) {
+  var state = getState();
+  var key = 'dexSlots' + player;
+  state[key][slotIdx] = null;
+  saveState(state);
+  render();
+  showToast((player==1?'Dave':'Colton') + ' Slot ' + (slotIdx + 1) + ' cleared');
+}
+
+// ============================================================
+// EXPORT / IMPORT / RESET
+// ============================================================
+function exportData() {
+  var state = getState();
+  var blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'shiny-bingo-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importData() {
+  var input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        localStorage.setItem('shinyBingo', JSON.stringify(data));
+        pushState(data);
+        render();
+        showToast('Data imported successfully');
+      } catch(err) { alert('Invalid JSON file'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetAll() {
+  if (!confirm('Reset all data? This cannot be undone.')) return;
+  var state = defaultState();
+  localStorage.setItem('shinyBingo', JSON.stringify(state));
+  pushState(state);
+  ['dexResult1','dexResult2'].forEach(function(id) {
+    document.getElementById(id).childNodes[0].textContent = '#???';
+  });
+  document.getElementById('dexSub1').textContent = 'tap to roll';
+  document.getElementById('dexSub2').textContent = 'tap to roll';
+  render();
+  showToast('Board reset');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+// ============================================================
+// CLOSE MODAL ON OVERLAY CLICK
+// ============================================================
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ============================================================
+// INIT
+// ============================================================
+buildMethodSelect();
+buildBoosters();
+loadAndRender();
+</script>
+</body>
+</html>
