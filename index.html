@@ -452,7 +452,8 @@ const SQUARES = [
 var MASTER_KEY  = '$2a$10$y78gUbDpbg0cgnCLtYOgO.YI6kWqvi1Z0F45uFkoC2cpPACtN.G7y';
 var ACCESS_KEY  = '$2a$10$e4Jf3emy/6h4v.bbzxD4mewv7Z2sd1ERfllwYM436ScYNgbNXD.iK';
 var BIN_ID_KEY  = 'shinyBingoBinId';
-var binId       = localStorage.getItem(BIN_ID_KEY) || null;
+var binId       = '69ed383a856a6821897180c7'; // hardcoded shared bin
+localStorage.setItem(BIN_ID_KEY, binId); // ensure all browsers use this bin
 var syncPending = false;
 var autoRefreshInterval = null;
 
