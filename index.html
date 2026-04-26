@@ -286,6 +286,7 @@ body {
   <div class="header-actions">
     <span id="syncStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-right:4px">⟳ Connecting...</span>
     <button class="btn btn-primary" onclick="rollNewBoard()">🎲 Roll Board</button>
+    <button class="btn" onclick="rollAllPokemon()">#? Roll All Pokémon</button>
     <button class="btn" onclick="exportData()">Export JSON</button>
     <button class="btn" onclick="importData()">Import JSON</button>
     <button class="btn" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="resetAll()">Reset</button>
@@ -1191,6 +1192,16 @@ function rollTilePokemon(idx) {
   saveState(state);
   render();
   showToast('Tile ' + (idx+1) + ' → #' + state.boardLayout[idx].pokemon);
+}
+
+function rollAllPokemon() {
+  var state = getState();
+  state.boardLayout.forEach(function(tile) {
+    tile.pokemon = Math.floor(Math.random() * 1025) + 1;
+  });
+  saveState(state);
+  render();
+  showToast('All 36 Pokémon targets re-rolled!');
 }
 
 
