@@ -258,6 +258,15 @@ body {
 .toast.show { transform: translateY(0); opacity: 1; }
 
 .empty-log { text-align: center; padding: 32px; color: var(--muted); font-size: 13px; font-style: italic; }
+
+.tile-roll-btn {
+  background: none; border: 1px solid var(--border2);
+  color: var(--muted); cursor: pointer; font-size: 10px;
+  padding: 2px 5px; border-radius: 4px; flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+.tile-roll-btn:hover { color: var(--gold); border-color: var(--gold); }
 </style>
 </head>
 <body>
@@ -1166,6 +1175,24 @@ function rollNewBoard() {
   showToast('New board rolled! 36 tiles randomized.');
 }
 
+function rollTileGame(idx) {
+  var state = getState();
+  var gameKeys = Object.keys(GAMES);
+  var newGame = gameKeys[Math.floor(Math.random() * gameKeys.length)];
+  state.boardLayout[idx].game = newGame;
+  saveState(state);
+  render();
+  showToast('Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
+}
+
+function rollTilePokemon(idx) {
+  var state = getState();
+  state.boardLayout[idx].pokemon = Math.floor(Math.random() * 1025) + 1;
+  saveState(state);
+  render();
+  showToast('Tile ' + (idx+1) + ' → #' + state.boardLayout[idx].pokemon);
+}
+
 
 function renderWithState(state) {
   renderScores(state);
@@ -1199,8 +1226,14 @@ function renderGrid(state) {
     cell.className = 'cell';
     cell.innerHTML =
       '<div class="cell-name">' + tile.challenge + '</div>' +
-      '<div class="cell-game">' + gameLabel + '</div>' +
-      '<div class="cell-target">#' + tile.pokemon + '</div>' +
+      '<div style="display:flex;align-items:center;gap:4px;margin-top:2px">' +
+        '<div class="cell-game" style="flex:1">' + gameLabel + '</div>' +
+        '<button class="tile-roll-btn" onclick="rollTileGame(' + i + ')" title="Roll new game">🎲</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:4px;margin-top:1px">' +
+        '<div class="cell-target" style="flex:1">#' + tile.pokemon + '</div>' +
+        '<button class="tile-roll-btn" onclick="rollTilePokemon(' + i + ')" title="Roll new Pokémon">#?</button>' +
+      '</div>' +
       '<div class="catches">' +
         '<div class="catch-slot' + (c1 ? ' p1' : '') + '" onclick="openModal(' + i + ',1)">' +
           '<span class="catch-player">Dave</span>' +
