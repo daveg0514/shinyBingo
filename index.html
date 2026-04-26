@@ -933,7 +933,7 @@ function bstMult(bst) {
 }
 
 function oddsToMethodScore(odds) {
-  return Math.round(Math.log2(8192 / odds) * 100);
+  return Math.max(10, Math.round(Math.log2(Math.max(odds, 64) / 64) * 50));
 }
 
 function calcScore(odds, bst, mark) {
