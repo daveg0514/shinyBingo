@@ -286,7 +286,7 @@ body {
   <div class="header-actions">
     <span id="syncStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-right:4px">⟳ Connecting...</span>
     <button class="btn btn-primary" onclick="rollNewBoard()">🎲 Roll Board</button>
-    <button class="btn" onclick="rollAllPokemon()">#? Roll All Pokémon</button>
+
     <button class="btn" onclick="exportData()">Export JSON</button>
     <button class="btn" onclick="importData()">Import JSON</button>
     <button class="btn" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="resetAll()">Reset</button>
@@ -575,6 +575,13 @@ function getState() {
   var s = loadState();
   if (!s.catches)     s.catches = {};
   if (!s.boardLayout) s.boardLayout = generateBoard();
+  // Migrate old single-game tiles to two-game format
+  var gameKeys = Object.keys(GAMES);
+  s.boardLayout.forEach(function(tile) {
+    if (tile.game && !tile.game1) { tile.game1 = tile.game; tile.game2 = tile.game; delete tile.game; }
+    if (!tile.game1) tile.game1 = gameKeys[0];
+    if (!tile.game2) tile.game2 = gameKeys[0];
+  });
   return s;
 }
 
@@ -986,17 +993,18 @@ function openModal(squareIdx, player) {
   var state = getState();
   var tile = state.boardLayout[squareIdx];
   var existing = state.catches[squareIdx + '-' + player];
-  var gameLabel = GAMES[tile.game] ? GAMES[tile.game].label : tile.game;
+  var tileGame = (player == 1) ? tile.game1 : tile.game2;
+  var gameLabel = GAMES[tileGame] ? GAMES[tileGame].label : tileGame;
 
   document.getElementById('modalTitle').textContent = tile.challenge;
-  document.getElementById('modalSub').textContent = gameLabel + ' · #' + tile.pokemon + ' · ' + (player==1?'Dave':'Colton');
+  document.getElementById('modalSub').textContent = gameLabel + ' · ' + (player==1?'Dave':'Colton');
   document.getElementById('fPlayer').value = player;
   document.getElementById('fMon').value = existing ? existing.mon : '';
   document.getElementById('fMark').value = existing ? (existing.markMult || '1.0') : '1.0';
   document.getElementById('bstHint').textContent = 'Type a Pokémon name to look up BST';
   document.getElementById('bstHint').className = 'bst-hint';
 
-  document.getElementById('fGame').value = (existing && existing.game) ? existing.game : tile.game;
+  document.getElementById('fGame').value = (existing && existing.game) ? existing.game : tileGame;
   buildMethodSelect();
   if (existing && existing.method) {
     document.getElementById('fMethod').value = existing.method;
@@ -1155,12 +1163,13 @@ function saveCatch() {
 // BOARD GENERATION
 // ============================================================
 function generateBoard() {
+  var gameKeys = Object.keys(GAMES);
   var layout = [];
   for (var i = 0; i < 36; i++) {
     var ch = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
-    var game = ch.games[Math.floor(Math.random() * ch.games.length)];
-    var pokemon = Math.floor(Math.random() * 1025) + 1;
-    layout.push({challenge: ch.name, game: game, pokemon: pokemon});
+    var game1 = gameKeys[Math.floor(Math.random() * gameKeys.length)];
+    var game2 = gameKeys[Math.floor(Math.random() * gameKeys.length)];
+    layout.push({challenge: ch.name, game1: game1, game2: game2});
   }
   return layout;
 }
@@ -1176,33 +1185,27 @@ function rollNewBoard() {
   showToast('New board rolled! 36 tiles randomized.');
 }
 
-function rollTileGame(idx) {
+function rollTileGame1(idx) {
   var state = getState();
   var gameKeys = Object.keys(GAMES);
   var newGame = gameKeys[Math.floor(Math.random() * gameKeys.length)];
-  state.boardLayout[idx].game = newGame;
+  state.boardLayout[idx].game1 = newGame;
   saveState(state);
   render();
-  showToast('Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
+  showToast('Dave Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
 }
 
-function rollTilePokemon(idx) {
+function rollTileGame2(idx) {
   var state = getState();
-  state.boardLayout[idx].pokemon = Math.floor(Math.random() * 1025) + 1;
+  var gameKeys = Object.keys(GAMES);
+  var newGame = gameKeys[Math.floor(Math.random() * gameKeys.length)];
+  state.boardLayout[idx].game2 = newGame;
   saveState(state);
   render();
-  showToast('Tile ' + (idx+1) + ' → #' + state.boardLayout[idx].pokemon);
+  showToast('Colton Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
 }
 
-function rollAllPokemon() {
-  var state = getState();
-  state.boardLayout.forEach(function(tile) {
-    tile.pokemon = Math.floor(Math.random() * 1025) + 1;
-  });
-  saveState(state);
-  render();
-  showToast('All 36 Pokémon targets re-rolled!');
-}
+
 
 
 function renderWithState(state) {
@@ -1232,18 +1235,21 @@ function renderGrid(state) {
   layout.forEach(function(tile, i) {
     var p1key = i + '-1', p2key = i + '-2';
     var c1 = state.catches[p1key], c2 = state.catches[p2key];
-    var gameLabel = GAMES[tile.game] ? GAMES[tile.game].label : tile.game;
+    var game1Label = GAMES[tile.game1] ? GAMES[tile.game1].label : tile.game1;
+    var game2Label = GAMES[tile.game2] ? GAMES[tile.game2].label : tile.game2;
     var cell = document.createElement('div');
     cell.className = 'cell';
     cell.innerHTML =
       '<div class="cell-name">' + tile.challenge + '</div>' +
       '<div style="display:flex;align-items:center;gap:4px;margin-top:2px">' +
-        '<div class="cell-game" style="flex:1">' + gameLabel + '</div>' +
-        '<button class="tile-roll-btn" onclick="rollTileGame(' + i + ')" title="Roll new game">🎲</button>' +
+        '<span style="font-size:9px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--p1);flex-shrink:0">D</span>' +
+        '<div class="cell-game" style="flex:1;color:var(--p1)">' + game1Label + '</div>' +
+        '<button class="tile-roll-btn" style="color:var(--p1);border-color:var(--p1border)" onclick="rollTileGame1(' + i + ')" title="Roll Dave\'s game">🎲</button>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:4px;margin-top:1px">' +
-        '<div class="cell-target" style="flex:1">#' + tile.pokemon + '</div>' +
-        '<button class="tile-roll-btn" onclick="rollTilePokemon(' + i + ')" title="Roll new Pokémon">#?</button>' +
+        '<span style="font-size:9px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--p2);flex-shrink:0">C</span>' +
+        '<div class="cell-game" style="flex:1;color:var(--p2)">' + game2Label + '</div>' +
+        '<button class="tile-roll-btn" style="color:var(--p2);border-color:var(--p2border)" onclick="rollTileGame2(' + i + ')" title="Roll Colton\'s game">🎲</button>' +
       '</div>' +
       '<div class="catches">' +
         '<div class="catch-slot' + (c1 ? ' p1' : '') + '" onclick="openModal(' + i + ',1)">' +
