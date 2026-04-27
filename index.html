@@ -146,7 +146,7 @@ body {
 /* BINGO GRID */
 .grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
 }
 .cell {
@@ -393,41 +393,78 @@ const BST = {"bulbasaur":318,"ivysaur":405,"venusaur":525,"charmander":309,"char
 // CHALLENGES POOL — picked randomly when rolling the board
 // ============================================================
 const CHALLENGES = [
-  {name:"Full odds wild encounter",    games:["frlg","lgpe","bdsp","swsh","la","lza","sv","oras","xy","usum"]},
-  {name:"Static encounter shiny",      games:["frlg","lgpe","bdsp","swsh","la","lza","sv","oras","xy","usum"]},
-  {name:"Egg hatch",                   games:["frlg","bdsp","swsh","sv","oras","xy","usum"]},
-  {name:"Masuda Method egg",           games:["bdsp","swsh","sv","oras","xy","usum"]},
-  {name:"Breeding chain shiny",        games:["bdsp","swsh","sv","oras","xy","usum"]},
-  {name:"Fishing shiny",               games:["frlg","bdsp","oras","xy","swsh","sv","usum"]},
-  {name:"Fossil shiny",                games:["bdsp","oras","xy","swsh","lza"]},
-  {name:"Overworld shiny",             games:["lgpe","swsh","sv","lza","la"]},
-  {name:"Shiny legendary encounter",   games:["frlg","bdsp","swsh","la","lza","sv","oras","xy","usum"]},
-  {name:"Safari Zone shiny",           games:["frlg","oras"]},
-  {name:"Game Corner shiny",           games:["frlg"]},
-  {name:"Catch combo shiny",           games:["lgpe"]},
-  {name:"Lure + catch combo",          games:["lgpe"]},
-  {name:"Poké Radar chain",            games:["bdsp","xy"]},
-  {name:"Grand Underground shiny",     games:["bdsp"]},
-  {name:"Max Raid shiny",                       games:["swsh"]},
-  {name:"Dynamax Adventure legendary",          games:["swsh"]},
-  {name:"Dynamax Adventure — non-legendary",    games:["swsh"]},
-
-  {name:"Marked shiny",                         games:["swsh","sv"]},
-  {name:"Shiny alpha — random area",            games:["la"]},
-  {name:"Mass Outbreak shiny",                  games:["la","sv"]},
-  {name:"Massive Mass Outbreak (MMO)",          games:["la"]},
-  {name:"Shiny starter soft reset",             games:["frlg","bdsp","oras","xy","usum"]},
-  {name:"Roaming Pokémon shiny",                games:["frlg","bdsp","swsh","oras","xy"]},
-  {name:"Shiny alpha — Z-A",                    games:["lza"]},
-  {name:"Sandwich method shiny",                games:["sv"]},
-  {name:"Shiny Paradox Pokémon",                games:["sv"]},
-  {name:"Outbreak + sandwich combo",   games:["sv"]},
-  {name:"DexNav hunt",                 games:["oras"]},
-  {name:"Horde encounter shiny",       games:["oras","xy"]},
-  {name:"Friend Safari shiny",         games:["xy"]},
-  {name:"Chain fishing shiny",         games:["xy","oras"]},
-  {name:"SOS chain shiny",             games:["usum"]},
-  {name:"Ultra Wormhole shiny",        games:["usum"]},
+  // FireRed / LeafGreen
+  {name:"Wild encounter",                    game:"frlg"},
+  {name:"Fishing",                           game:"frlg"},
+  {name:"Safari Zone",                       game:"frlg"},
+  {name:"Game Corner",                       game:"frlg"},
+  {name:"Egg hatch",                         game:"frlg"},
+  {name:"Static encounter",                  game:"frlg"},
+  // Let's Go Pikachu / Eevee
+  {name:"Catch combo",                       game:"lgpe"},
+  {name:"Lure + catch combo",                game:"lgpe"},
+  {name:"Static encounter",                  game:"lgpe"},
+  // Brilliant Diamond / Shining Pearl
+  {name:"Wild encounter",                    game:"bdsp"},
+  {name:"Poké Radar chain",                  game:"bdsp"},
+  {name:"Grand Underground",                 game:"bdsp"},
+  {name:"Fishing",                           game:"bdsp"},
+  {name:"Egg hatch",                         game:"bdsp"},
+  {name:"Masuda Method",                     game:"bdsp"},
+  {name:"Fossil revival",                    game:"bdsp"},
+  {name:"Static encounter",                  game:"bdsp"},
+  // Sword / Shield
+  {name:"Wild / Brilliant Pokémon",          game:"swsh"},
+  {name:"Max Raid",                          game:"swsh"},
+  {name:"Dynamax Adventure — legendary",     game:"swsh"},
+  {name:"Dynamax Adventure — non-legendary", game:"swsh"},
+  {name:"Egg hatch",                         game:"swsh"},
+  {name:"Masuda Method",                     game:"swsh"},
+  {name:"Marked shiny",                      game:"swsh"},
+  {name:"Fishing",                           game:"swsh"},
+  // Legends: Arceus
+  {name:"Wild encounter",                    game:"la"},
+  {name:"Alpha encounter",                   game:"la"},
+  {name:"Mass Outbreak",                     game:"la"},
+  {name:"Massive Mass Outbreak (MMO)",       game:"la"},
+  // Legends: Z-A
+  {name:"Wild / Alpha encounter",            game:"lza"},
+  {name:"Fossil encounter",                  game:"lza"},
+  {name:"Spawn reset",                       game:"lza"},
+  // Scarlet / Violet
+  {name:"Wild encounter",                    game:"sv"},
+  {name:"Mass Outbreak",                     game:"sv"},
+  {name:"Sparkling Power sandwich",          game:"sv"},
+  {name:"Outbreak + sandwich combo",         game:"sv"},
+  {name:"Shiny Paradox Pokémon",             game:"sv"},
+  {name:"Marked shiny",                      game:"sv"},
+  {name:"Egg hatch",                         game:"sv"},
+  {name:"Masuda Method",                     game:"sv"},
+  // Omega Ruby / Alpha Sapphire
+  {name:"Wild encounter",                    game:"oras"},
+  {name:"DexNav chain",                      game:"oras"},
+  {name:"Horde encounter",                   game:"oras"},
+  {name:"Fishing",                           game:"oras"},
+  {name:"Chain fishing",                     game:"oras"},
+  {name:"Safari Zone",                       game:"oras"},
+  {name:"Egg hatch",                         game:"oras"},
+  {name:"Masuda Method",                     game:"oras"},
+  {name:"Fossil revival",                    game:"oras"},
+  // X / Y
+  {name:"Wild encounter",                    game:"xy"},
+  {name:"Friend Safari",                     game:"xy"},
+  {name:"Poké Radar chain",                  game:"xy"},
+  {name:"Horde encounter",                   game:"xy"},
+  {name:"Chain fishing",                     game:"xy"},
+  {name:"Egg hatch",                         game:"xy"},
+  {name:"Masuda Method",                     game:"xy"},
+  // Ultra Sun / Ultra Moon
+  {name:"Wild encounter",                    game:"usum"},
+  {name:"SOS chain",                         game:"usum"},
+  {name:"Ultra Wormhole",                    game:"usum"},
+  {name:"Egg hatch",                         game:"usum"},
+  {name:"Masuda Method",                     game:"usum"},
+  {name:"Fishing",                           game:"usum"},
 ];
 
 // ============================================================
@@ -572,22 +609,8 @@ function saveState(state) {
 }
 function getState() {
   var s = loadState();
-  if (!s.catches)     s.catches = {};
-  if (!s.boardLayout) s.boardLayout = generateBoard();
-  var gameKeys = Object.keys(GAMES);
-  s.boardLayout.forEach(function(tile) {
-    // Migrate single-game tiles to two-game format
-    if (tile.game && !tile.game1) { tile.game1 = tile.game; tile.game2 = tile.game; delete tile.game; }
-    if (!tile.game1) tile.game1 = gameKeys[0];
-    if (!tile.game2) tile.game2 = gameKeys[0];
-    // Restore correct games pool from CHALLENGES if missing (tiles saved before this field existed)
-    if (!tile.games) {
-      for (var ci = 0; ci < CHALLENGES.length; ci++) {
-        if (CHALLENGES[ci].name === tile.challenge) { tile.games = CHALLENGES[ci].games; break; }
-      }
-      if (!tile.games) tile.games = gameKeys;
-    }
-  });
+  if (!s.catches) s.catches = {};
+  if (!s.boardLayout || s.boardLayout.length !== CHALLENGES.length) s.boardLayout = generateBoard();
   return s;
 }
 
@@ -999,10 +1022,10 @@ function openModal(squareIdx, player) {
   var state = getState();
   var tile = state.boardLayout[squareIdx];
   var existing = state.catches[squareIdx + '-' + player];
-  var tileGame = (player == 1) ? tile.game1 : tile.game2;
+  var tileGame = tile.game;
   var gameLabel = GAMES[tileGame] ? GAMES[tileGame].label : tileGame;
 
-  document.getElementById('modalTitle').textContent = tile.challenge;
+  document.getElementById('modalTitle').textContent = tile.name;
   document.getElementById('modalSub').textContent = gameLabel + ' · ' + (player==1?'Dave':'Colton');
   document.getElementById('fPlayer').value = player;
   document.getElementById('fMon').value = existing ? existing.mon : '';
@@ -1015,8 +1038,8 @@ function openModal(squareIdx, player) {
   if (existing && existing.method) {
     document.getElementById('fMethod').value = existing.method;
   } else {
-    // Smart default method based on challenge name
-    var sqNameLower = tile.challenge.toLowerCase();
+    // Smart default method based on tile name
+    var sqNameLower = tile.name.toLowerCase();
     var methodSel = document.getElementById('fMethod');
     if (sqNameLower.includes('egg')) {
       // Try to select masuda or egg method
@@ -1170,32 +1193,8 @@ function saveCatch() {
 // ============================================================
 function generateBoard() {
   return CHALLENGES.map(function(ch) {
-    var game1 = ch.games[Math.floor(Math.random() * ch.games.length)];
-    var game2 = ch.games[Math.floor(Math.random() * ch.games.length)];
-    return {challenge: ch.name, games: ch.games, game1: game1, game2: game2};
+    return {name: ch.name, game: ch.game};
   });
-}
-
-function rollTileGame1(idx) {
-  var state = getState();
-  var tile = state.boardLayout[idx];
-  var pool = (tile.games && tile.games.length) ? tile.games : Object.keys(GAMES);
-  var newGame = pool[Math.floor(Math.random() * pool.length)];
-  tile.game1 = newGame;
-  saveState(state);
-  render();
-  showToast('Dave Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
-}
-
-function rollTileGame2(idx) {
-  var state = getState();
-  var tile = state.boardLayout[idx];
-  var pool = (tile.games && tile.games.length) ? tile.games : Object.keys(GAMES);
-  var newGame = pool[Math.floor(Math.random() * pool.length)];
-  tile.game2 = newGame;
-  saveState(state);
-  render();
-  showToast('Colton Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
 }
 
 
@@ -1228,22 +1227,17 @@ function renderGrid(state) {
   layout.forEach(function(tile, i) {
     var p1key = i + '-1', p2key = i + '-2';
     var c1 = state.catches[p1key], c2 = state.catches[p2key];
-    var game1Label = GAMES[tile.game1] ? GAMES[tile.game1].label : tile.game1;
-    var game2Label = GAMES[tile.game2] ? GAMES[tile.game2].label : tile.game2;
+    var gameLabel = GAMES[tile.game] ? GAMES[tile.game].label : tile.game;
     var cell = document.createElement('div');
     cell.className = 'cell';
+    cell.style.borderTop = '2px solid ' + ({
+      frlg:'#e53935', lgpe:'#f9a825', bdsp:'#1e88e5', swsh:'#e65100',
+      la:'#6d4c41', lza:'#8e24aa', sv:'#c62828', oras:'#bf360c',
+      xy:'#0288d1', usum:'#00838f'
+    }[tile.game] || 'var(--border)');
     cell.innerHTML =
-      '<div class="cell-name">' + tile.challenge + '</div>' +
-      '<div style="display:flex;align-items:center;gap:4px;margin-top:2px">' +
-        '<span style="font-size:9px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--p1);flex-shrink:0">D</span>' +
-        '<div class="cell-game" style="flex:1;color:var(--p1)">' + game1Label + '</div>' +
-        '<button class="tile-roll-btn" style="color:var(--p1);border-color:var(--p1border)" onclick="rollTileGame1(' + i + ')" title="Roll Dave\'s game">🎲</button>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:4px;margin-top:1px">' +
-        '<span style="font-size:9px;font-weight:600;font-family:\'DM Mono\',monospace;color:var(--p2);flex-shrink:0">C</span>' +
-        '<div class="cell-game" style="flex:1;color:var(--p2)">' + game2Label + '</div>' +
-        '<button class="tile-roll-btn" style="color:var(--p2);border-color:var(--p2border)" onclick="rollTileGame2(' + i + ')" title="Roll Colton\'s game">🎲</button>' +
-      '</div>' +
+      '<div class="cell-game">' + gameLabel + '</div>' +
+      '<div class="cell-name">' + tile.name + '</div>' +
       '<div class="catches">' +
         '<div class="catch-slot' + (c1 ? ' p1' : '') + '" onclick="openModal(' + i + ',1)">' +
           '<span class="catch-player">Dave</span>' +
@@ -1274,9 +1268,10 @@ function renderLog(state) {
     var parts = key.split('-');
     var sqIdx = parseInt(parts[0]);
     var tile = (state.boardLayout || [])[sqIdx] || {};
+    var tileDesc = tile.name ? (tile.name + ' · ' + (GAMES[tile.game] ? GAMES[tile.game].label : (tile.game||'—'))) : '—';
     return '<tr>' +
       '<td class="tag-p' + c.player + '">' + (c.player==1?'Dave':'Colton') + '</td>' +
-      '<td>' + (tile.challenge || '—') + '</td>' +
+      '<td>' + tileDesc + '</td>' +
       '<td>' + c.mon + '</td>' +
       '<td style="font-family:\'DM Mono\',monospace">' + (c.bst||'—') + '</td>' +
       '<td style="color:var(--muted);font-size:11px">' + (c.gameLabel||c.game||'—') + '</td>' +
