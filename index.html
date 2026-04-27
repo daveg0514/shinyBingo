@@ -408,20 +408,20 @@ const CHALLENGES = [
   {name:"Lure + catch combo",          games:["lgpe"]},
   {name:"Poké Radar chain",            games:["bdsp","xy"]},
   {name:"Grand Underground shiny",     games:["bdsp"]},
-  {name:"Max Raid shiny",              games:["swsh"]},
-  {name:"Dynamax Adventure legendary", games:["swsh"]},
-  {name:"Dynamax Adventure legendary", games:["swsh"]},
-  {name:"Dynamax shiny",               games:["swsh"]},
-  {name:"Dynamax shiny — any Pokémon", games:["swsh"]},
-  {name:"Marked shiny",                games:["swsh","sv"]},
-  {name:"Shiny alpha — random area",   games:["la"]},
-  {name:"Mass Outbreak shiny",         games:["la","sv"]},
-  {name:"Massive Mass Outbreak (MMO)", games:["la"]},
-  {name:"Journey shiny",               games:["la","sv"]},
-  {name:"Shiny alpha — Z-A",           games:["lza"]},
-  {name:"Sandwich method shiny",       games:["sv"]},
-
-  {name:"Shiny Paradox Pokémon",       games:["sv"]},
+  {name:"Max Raid shiny",                       games:["swsh"]},
+  {name:"Dynamax Adventure legendary",          games:["swsh"]},
+  {name:"Dynamax Adventure — non-legendary",    games:["swsh"]},
+  {name:"Dynamax shiny",                        games:["swsh"]},
+  {name:"Dynamax shiny — any Pokémon",          games:["swsh"]},
+  {name:"Marked shiny",                         games:["swsh","sv"]},
+  {name:"Shiny alpha — random area",            games:["la"]},
+  {name:"Mass Outbreak shiny",                  games:["la","sv"]},
+  {name:"Massive Mass Outbreak (MMO)",          games:["la"]},
+  {name:"Shiny starter soft reset",             games:["frlg","bdsp","oras","xy","usum"]},
+  {name:"Roaming Pokémon shiny",                games:["frlg","bdsp","swsh","oras","xy"]},
+  {name:"Shiny alpha — Z-A",                    games:["lza"]},
+  {name:"Sandwich method shiny",                games:["sv"]},
+  {name:"Shiny Paradox Pokémon",                games:["sv"]},
   {name:"Outbreak + sandwich combo",   games:["sv"]},
   {name:"DexNav hunt",                 games:["oras"]},
   {name:"Horde encounter shiny",       games:["oras","xy"]},
@@ -1163,15 +1163,16 @@ function saveCatch() {
 // BOARD GENERATION
 // ============================================================
 function generateBoard() {
-  var gameKeys = Object.keys(GAMES);
-  var layout = [];
-  for (var i = 0; i < 36; i++) {
-    var ch = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
-    var game1 = gameKeys[Math.floor(Math.random() * gameKeys.length)];
-    var game2 = gameKeys[Math.floor(Math.random() * gameKeys.length)];
-    layout.push({challenge: ch.name, game1: game1, game2: game2});
+  var pool = CHALLENGES.slice();
+  for (var i = pool.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
   }
-  return layout;
+  return pool.map(function(ch) {
+    var game1 = ch.games[Math.floor(Math.random() * ch.games.length)];
+    var game2 = ch.games[Math.floor(Math.random() * ch.games.length)];
+    return {challenge: ch.name, games: ch.games, game1: game1, game2: game2};
+  });
 }
 
 function rollNewBoard() {
@@ -1187,9 +1188,10 @@ function rollNewBoard() {
 
 function rollTileGame1(idx) {
   var state = getState();
-  var gameKeys = Object.keys(GAMES);
-  var newGame = gameKeys[Math.floor(Math.random() * gameKeys.length)];
-  state.boardLayout[idx].game1 = newGame;
+  var tile = state.boardLayout[idx];
+  var pool = (tile.games && tile.games.length) ? tile.games : Object.keys(GAMES);
+  var newGame = pool[Math.floor(Math.random() * pool.length)];
+  tile.game1 = newGame;
   saveState(state);
   render();
   showToast('Dave Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
@@ -1197,9 +1199,10 @@ function rollTileGame1(idx) {
 
 function rollTileGame2(idx) {
   var state = getState();
-  var gameKeys = Object.keys(GAMES);
-  var newGame = gameKeys[Math.floor(Math.random() * gameKeys.length)];
-  state.boardLayout[idx].game2 = newGame;
+  var tile = state.boardLayout[idx];
+  var pool = (tile.games && tile.games.length) ? tile.games : Object.keys(GAMES);
+  var newGame = pool[Math.floor(Math.random() * pool.length)];
+  tile.game2 = newGame;
   saveState(state);
   render();
   showToast('Colton Tile ' + (idx+1) + ' → ' + GAMES[newGame].label);
