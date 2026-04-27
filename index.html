@@ -285,7 +285,7 @@ body {
   </div>
   <div class="header-actions">
     <span id="syncStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-right:4px">⟳ Connecting...</span>
-    <button class="btn btn-primary" onclick="rollNewBoard()">🎲 Roll Board</button>
+
 
     <button class="btn" onclick="exportData()">Export JSON</button>
     <button class="btn" onclick="importData()">Import JSON</button>
@@ -1163,27 +1163,11 @@ function saveCatch() {
 // BOARD GENERATION
 // ============================================================
 function generateBoard() {
-  var pool = CHALLENGES.slice();
-  for (var i = pool.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-  }
-  return pool.map(function(ch) {
+  return CHALLENGES.map(function(ch) {
     var game1 = ch.games[Math.floor(Math.random() * ch.games.length)];
     var game2 = ch.games[Math.floor(Math.random() * ch.games.length)];
     return {challenge: ch.name, games: ch.games, game1: game1, game2: game2};
   });
-}
-
-function rollNewBoard() {
-  var state = getState();
-  var hasCatches = Object.keys(state.catches).length > 0;
-  if (hasCatches && !confirm('Rolling a new board will clear all logged catches. Continue?')) return;
-  state.boardLayout = generateBoard();
-  state.catches = {};
-  saveState(state);
-  render();
-  showToast('New board rolled! 36 tiles randomized.');
 }
 
 function rollTileGame1(idx) {
