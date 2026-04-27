@@ -573,9 +573,10 @@ async function loadAndRender() {
     state = JSON.parse(localStorage.getItem('shinyBingo') || 'null');
   }
   if (!state) state = defaultState();
-  // Ensure all keys exist
-  if (!state.catches)     state.catches = {};
-  if (!state.boardLayout) state.boardLayout = generateBoard();
+  if (!state.catches) state.catches = {};
+  if (!state.boardLayout || state.boardLayout.length !== CHALLENGES.length || !state.boardLayout[0].name) {
+    state.boardLayout = generateBoard();
+  }
   // Cache locally
   localStorage.setItem('shinyBingo', JSON.stringify(state));
   if (!binId) await createBin(state);
