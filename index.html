@@ -575,12 +575,19 @@ function getState() {
   var s = loadState();
   if (!s.catches)     s.catches = {};
   if (!s.boardLayout) s.boardLayout = generateBoard();
-  // Migrate old single-game tiles to two-game format
   var gameKeys = Object.keys(GAMES);
   s.boardLayout.forEach(function(tile) {
+    // Migrate single-game tiles to two-game format
     if (tile.game && !tile.game1) { tile.game1 = tile.game; tile.game2 = tile.game; delete tile.game; }
     if (!tile.game1) tile.game1 = gameKeys[0];
     if (!tile.game2) tile.game2 = gameKeys[0];
+    // Restore correct games pool from CHALLENGES if missing (tiles saved before this field existed)
+    if (!tile.games) {
+      for (var ci = 0; ci < CHALLENGES.length; ci++) {
+        if (CHALLENGES[ci].name === tile.challenge) { tile.games = CHALLENGES[ci].games; break; }
+      }
+      if (!tile.games) tile.games = gameKeys;
+    }
   });
   return s;
 }
