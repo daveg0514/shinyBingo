@@ -736,7 +736,7 @@ function startAutoRefresh() {
     localStorage.setItem('shinyBingo', JSON.stringify(state));
     renderWithState(state);
     setSyncStatus('ok','✓ Refreshed '+new Date().toLocaleTimeString());
-  }, 30000);
+  }, 270000);
 }
 
 function defaultState() { return {catches:{}, rolls:{}, boardLayout:null}; }
