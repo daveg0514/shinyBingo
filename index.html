@@ -232,6 +232,15 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .sprite-status.found { color: var(--green); font-style: normal; }
 .sprite-status.notfound { color: var(--red); font-style: normal; }
 
+.catch-nature { font-size: 10px; font-family: 'DM Mono', monospace; margin-top: 2px; }
+.tier-primary { color: var(--gold); }
+.tier-alt1    { color: var(--green); }
+.tier-alt2    { color: var(--p1); }
+.tier-unlisted{ color: var(--muted); }
+.tier-neutral { color: #9e9e9e; }
+.tier-worst   { color: var(--red); }
+.score-pts { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); margin-left: 4px; }
+
 .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; align-items: center; }
 
 /* TOAST */
@@ -264,11 +273,13 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
   <div class="scores">
     <div class="score-chip p1">
       <span class="score-label">Dave</span>
-      <span class="score-val" id="p1total">0/96</span>
+      <span class="score-val" id="p1total">0 pts</span>
+      <span class="score-pts" id="p1catches">0/96</span>
     </div>
     <div class="score-chip p2">
       <span class="score-label">Colton</span>
-      <span class="score-val" id="p2total">0/96</span>
+      <span class="score-val" id="p2total">0 pts</span>
+      <span class="score-pts" id="p2catches">0/96</span>
     </div>
   </div>
   <div class="header-actions">
@@ -305,6 +316,22 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
     </div>
     <div class="sprite-preview-wrap" id="spritePreview">
       <div class="sprite-status">Type a Pokémon name to search</div>
+    </div>
+    <div class="form-group" id="natureGroup" style="display:none">
+      <label class="form-label">Nature</label>
+      <select class="form-input" id="fNature" onchange="onNatureChange()">
+        <option value="">— Select nature —</option>
+        <option>Adamant</option><option>Bashful</option><option>Bold</option>
+        <option>Brave</option><option>Calm</option><option>Careful</option>
+        <option>Docile</option><option>Gentle</option><option>Hardy</option>
+        <option>Hasty</option><option>Impish</option><option>Jolly</option>
+        <option>Lax</option><option>Lonely</option><option>Mild</option>
+        <option>Modest</option><option>Naive</option><option>Naughty</option>
+        <option>Quiet</option><option>Quirky</option><option>Rash</option>
+        <option>Relaxed</option><option>Sassy</option><option>Serious</option>
+        <option>Timid</option>
+      </select>
+      <div id="natureTierHint" style="margin-top:5px;font-size:11px;font-family:'DM Mono',monospace;min-height:16px;"></div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-danger" id="clearBtn" onclick="clearSlot()" style="display:none;margin-right:auto">Remove</button>
@@ -345,6 +372,53 @@ var SLOTS = [
   { num:'Slot 7', name:'Before Gym 7',  sub:'' },
   { num:'Slot 8', name:'Before Gym 8',  sub:'' },
 ];
+
+// ============================================================
+// NATURE DATA + SCORING
+// ============================================================
+var NATURE_DATA = {};
+
+async function loadNatureData() {
+  try {
+    var res = await fetch('All_Pokemon_Natures_Complete.csv');
+    var text = await res.text();
+    var lines = text.trim().split('\n');
+    for (var i = 1; i < lines.length; i++) {
+      var cols = lines[i].split(',');
+      if (cols.length < 5) continue;
+      var key = cols[0].trim().toLowerCase();
+      NATURE_DATA[key] = { p: cols[1].trim(), a1: cols[2].trim(), a2: cols[3].trim(), w: cols[4].trim() };
+    }
+  } catch(e) { console.warn('Nature CSV unavailable'); }
+}
+
+var NEUTRAL_NATURES = ['Hardy','Docile','Bashful','Quirky','Serious'];
+
+function getNatureScore(mon, nature) {
+  if (!mon || !nature) return null;
+  var n = nature.charAt(0).toUpperCase() + nature.slice(1).toLowerCase();
+  if (NEUTRAL_NATURES.indexOf(n) !== -1) return 9;
+  var e = NATURE_DATA[mon.toLowerCase()];
+  if (!e) return 11;
+  if (n === e.p)  return 25;
+  if (n === e.a1) return 18;
+  if (n === e.a2) return 14;
+  if (n === e.w)  return 7;
+  return 11;
+}
+
+function getNatureTier(mon, nature) {
+  if (!mon || !nature) return null;
+  var n = nature.charAt(0).toUpperCase() + nature.slice(1).toLowerCase();
+  if (NEUTRAL_NATURES.indexOf(n) !== -1) return 'neutral';
+  var e = NATURE_DATA[mon.toLowerCase()];
+  if (!e) return 'unlisted';
+  if (n === e.p)  return 'primary';
+  if (n === e.a1) return 'alt1';
+  if (n === e.a2) return 'alt2';
+  if (n === e.w)  return 'worst';
+  return 'unlisted';
+}
 
 // ============================================================
 // JSONBIN SYNC
@@ -460,13 +534,17 @@ function openModal(gameId, slot, player) {
   if (existing) {
     _pendingSprite = existing.sprite;
     _pendingName = existing.mon;
-    document.getElementById('saveBtn').disabled = false;
     preview.innerHTML =
       '<img src="' + existing.sprite + '" style="width:96px;height:96px;image-rendering:pixelated">' +
       '<div class="sprite-preview-name">' + existing.mon + '</div>' +
       '<div class="sprite-status found">✓ Shiny sprite loaded</div>';
+    document.getElementById('natureGroup').style.display = 'block';
+    document.getElementById('fNature').value = existing.nature || '';
+    onNatureChange();
+    if (!existing.nature) document.getElementById('saveBtn').disabled = false;
   } else {
     preview.innerHTML = '<div class="sprite-status">Type a Pokémon name to search</div>';
+    document.getElementById('natureGroup').style.display = 'none';
   }
 
   document.getElementById('modal').classList.add('open');
@@ -475,7 +553,23 @@ function openModal(gameId, slot, player) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
+  document.getElementById('natureGroup').style.display = 'none';
   if (_fetchTimer) clearTimeout(_fetchTimer);
+}
+
+function onNatureChange() {
+  var nature = document.getElementById('fNature').value;
+  document.getElementById('saveBtn').disabled = !(_pendingSprite && nature);
+  var hint = document.getElementById('natureTierHint');
+  if (_pendingName && nature) {
+    var tier = getNatureTier(_pendingName, nature);
+    var score = getNatureScore(_pendingName, nature);
+    var labels = { primary:'Primary Nature', alt1:'Alternative 1', alt2:'Alternative 2', neutral:'Neutral Nature', worst:'Worst Nature', unlisted:'Unlisted Nature' };
+    hint.textContent = labels[tier] + ' · ' + score + ' pts';
+    hint.className = 'tier-' + tier;
+  } else {
+    hint.textContent = '';
+  }
 }
 
 function onMonInput() {
@@ -504,7 +598,10 @@ async function fetchPokemon(name) {
     if (!sprite) throw new Error('no sprite');
     _pendingSprite = sprite;
     _pendingName = data.name;
-    document.getElementById('saveBtn').disabled = false;
+    document.getElementById('natureGroup').style.display = 'block';
+    document.getElementById('fNature').value = '';
+    document.getElementById('natureTierHint').textContent = '';
+    document.getElementById('saveBtn').disabled = true;
     preview.innerHTML =
       '<img src="' + sprite + '" style="width:96px;height:96px;image-rendering:pixelated">' +
       '<div class="sprite-preview-name">' + data.name + '</div>' +
@@ -520,7 +617,8 @@ function saveCatch() {
   if (!_pendingSprite || !_pendingName) return;
   var state = getState();
   var key = _gameId + '-' + _slot + '-' + _player;
-  state.quest[key] = { mon: _pendingName, sprite: _pendingSprite, ts: Date.now() };
+  var nature = document.getElementById('fNature').value;
+  state.quest[key] = { mon: _pendingName, sprite: _pendingSprite, nature: nature || null, ts: Date.now() };
   saveState(state);
   closeModal();
   render();
@@ -547,14 +645,19 @@ function render() {
 }
 
 function renderScores(state) {
-  var p1 = 0, p2 = 0;
-  var total = GAMES.length * 8; // 96
+  var p1pts = 0, p2pts = 0, p1c = 0, p2c = 0;
+  var total = GAMES.length * 8;
   Object.keys(state.quest).forEach(function(key) {
+    var val = state.quest[key];
     var p = parseInt(key.charAt(key.length - 1));
-    if (p === 1) p1++; else if (p === 2) p2++;
+    var score = val.nature ? (getNatureScore(val.mon, val.nature) || 0) : 0;
+    if (p === 1) { p1pts += score; p1c++; }
+    else if (p === 2) { p2pts += score; p2c++; }
   });
-  document.getElementById('p1total').textContent = p1 + '/' + total;
-  document.getElementById('p2total').textContent = p2 + '/' + total;
+  document.getElementById('p1total').textContent = p1pts + ' pts';
+  document.getElementById('p2total').textContent = p2pts + ' pts';
+  document.getElementById('p1catches').textContent = p1c + '/' + total;
+  document.getElementById('p2catches').textContent = p2c + '/' + total;
 }
 
 function renderDots() {
@@ -571,10 +674,12 @@ function renderCard(state) {
   titleEl.style.color = game.color;
   document.getElementById('gameCounter').textContent = (currentGameIdx + 1) + ' / ' + GAMES.length;
 
-  var p1done = 0, p2done = 0;
+  var p1done = 0, p2done = 0, p1pts = 0, p2pts = 0;
   for (var s = 0; s < 8; s++) {
-    if (state.quest[game.id + '-' + s + '-1']) p1done++;
-    if (state.quest[game.id + '-' + s + '-2']) p2done++;
+    var _c1 = state.quest[game.id + '-' + s + '-1'];
+    var _c2 = state.quest[game.id + '-' + s + '-2'];
+    if (_c1) { p1done++; if (_c1.nature) p1pts += getNatureScore(_c1.mon, _c1.nature) || 0; }
+    if (_c2) { p2done++; if (_c2.nature) p2pts += getNatureScore(_c2.mon, _c2.nature) || 0; }
   }
 
   var html = '<div class="quest-card" style="border-top-color:' + game.color + '">';
@@ -585,11 +690,13 @@ function renderCard(state) {
       '<span class="progress-name p1">Dave</span>' +
       '<div class="progress-bar-bg"><div class="progress-bar-fill p1" style="width:' + Math.round(p1done/8*100) + '%"></div></div>' +
       '<span class="progress-count p1">' + p1done + '/8</span>' +
+      '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--p1);width:48px;text-align:right;flex-shrink:0">' + (p1pts ? p1pts + 'pts' : '') + '</span>' +
     '</div>' +
     '<div class="progress-row">' +
       '<span class="progress-name p2">Colton</span>' +
       '<div class="progress-bar-bg"><div class="progress-bar-fill p2" style="width:' + Math.round(p2done/8*100) + '%"></div></div>' +
       '<span class="progress-count p2">' + p2done + '/8</span>' +
+      '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--p2);width:48px;text-align:right;flex-shrink:0">' + (p2pts ? p2pts + 'pts' : '') + '</span>' +
     '</div>' +
   '</div>';
 
@@ -618,8 +725,12 @@ function renderCard(state) {
     // Dave cell
     html += '<div class="catch-cell' + (c1 ? ' filled-p1' : '') + '" onclick="openModal(\'' + game.id + '\',' + s + ',1)">';
     if (c1) {
+      var t1 = c1.nature ? getNatureTier(c1.mon, c1.nature) : null;
+      var sc1 = c1.nature ? getNatureScore(c1.mon, c1.nature) : null;
       html += '<img src="' + c1.sprite + '" class="shiny-sprite" onerror="this.style.opacity=\'0.3\'">';
-      html += '<div class="catch-info"><div class="catch-mon-name">' + c1.mon + '</div></div>';
+      html += '<div class="catch-info"><div class="catch-mon-name">' + c1.mon + '</div>';
+      if (c1.nature) html += '<div class="catch-nature tier-' + t1 + '">' + c1.nature + ' · ' + sc1 + 'pts</div>';
+      html += '</div>';
     } else {
       html += '<div class="sprite-placeholder">+</div><div class="catch-info"><div class="catch-empty-hint">tap to add</div></div>';
     }
@@ -628,8 +739,12 @@ function renderCard(state) {
     // Colton cell
     html += '<div class="catch-cell' + (c2 ? ' filled-p2' : '') + '" onclick="openModal(\'' + game.id + '\',' + s + ',2)">';
     if (c2) {
+      var t2 = c2.nature ? getNatureTier(c2.mon, c2.nature) : null;
+      var sc2 = c2.nature ? getNatureScore(c2.mon, c2.nature) : null;
       html += '<img src="' + c2.sprite + '" class="shiny-sprite" onerror="this.style.opacity=\'0.3\'">';
-      html += '<div class="catch-info"><div class="catch-mon-name">' + c2.mon + '</div></div>';
+      html += '<div class="catch-info"><div class="catch-mon-name">' + c2.mon + '</div>';
+      if (c2.nature) html += '<div class="catch-nature tier-' + t2 + '">' + c2.nature + ' · ' + sc2 + 'pts</div>';
+      html += '</div>';
     } else {
       html += '<div class="sprite-placeholder">+</div><div class="catch-info"><div class="catch-empty-hint">tap to add</div></div>';
     }
@@ -707,7 +822,7 @@ document.addEventListener('keydown', function(e) {
 // ============================================================
 // INIT
 // ============================================================
-loadAndRender();
+loadNatureData().then(loadAndRender);
 </script>
 </body>
 </html>
