@@ -239,7 +239,10 @@ h1 {
 <body>
 
 <div class="container">
-  <h1>✦ Shiny Hunt Slot Machine ✦</h1>
+  <div style="display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:30px;">
+    <h1 style="margin:0">✦ Shiny Hunt Slot Machine ✦</h1>
+    <span id="syncStatus" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">⟳ Connecting...</span>
+  </div>
 
   <div class="slot-machine">
     <div class="slots">
@@ -450,6 +453,58 @@ function getPokemonForMethod(game, method) {
   return getPokemonForGen(gameData.gen);
 }
 
+// ============================================================
+// JSONBIN SYNC
+// ============================================================
+var MASTER_KEY = '$2a$10$y78gUbDpbg0cgnCLtYOgO.YI6kWqvi1Z0F45uFkoC2cpPACtN.G7y';
+var binId = '69ed383a856a6821897180c7';
+var autoRefreshInterval = null;
+
+function setSyncStatus(s, msg) {
+  var el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = {ok:'var(--green)',err:'var(--red)',loading:'var(--gold)',idle:'var(--muted)'}[s] || 'var(--muted)';
+}
+
+async function pushState(stateData) {
+  setSyncStatus('loading', '⟳ Saving...');
+  try {
+    var res = await fetch('https://api.jsonbin.io/v3/b/' + binId, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':MASTER_KEY},
+      body:JSON.stringify(stateData)
+    });
+    if (!res.ok) { setSyncStatus('err','✗ Save failed'); return; }
+    setSyncStatus('ok','✓ Saved ' + new Date().toLocaleTimeString());
+  } catch(e) { setSyncStatus('err','✗ Save failed'); }
+}
+
+async function pullState() {
+  try {
+    var res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+      headers:{'X-Master-Key':MASTER_KEY}
+    });
+    var d = await res.json();
+    return d.record || null;
+  } catch(e) { return null; }
+}
+
+function defaultState() { return { dave: [], colton: [] }; }
+
+function startAutoRefresh() {
+  if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+  autoRefreshInterval = setInterval(async function() {
+    if (document.hidden) return;
+    var serverState = await pullState();
+    if (!serverState) return;
+    state = serverState;
+    localStorage.setItem('shinyHunts', JSON.stringify(state));
+    renderTables();
+    setSyncStatus('ok','✓ Refreshed ' + new Date().toLocaleTimeString());
+  }, 30000);
+}
+
 // State
 let selectedPlayer = 'dave';
 let currentResult = null;
@@ -459,17 +514,36 @@ let currentMethod = null;
 
 // Load from localStorage
 function loadState() {
-  try {
-    const saved = localStorage.getItem('shinyHunts');
-    if (saved) {
-      state = JSON.parse(saved);
-      renderTables();
+  loadAndRender();
+}
+
+async function loadAndRender() {
+  setSyncStatus('loading','⟳ Loading...');
+  var serverState = await pullState();
+  if (serverState) {
+    state = serverState;
+  } else {
+    // Try local storage
+    try {
+      const saved = localStorage.getItem('shinyHunts');
+      if (saved) {
+        state = JSON.parse(saved);
+      } else {
+        state = defaultState();
+      }
+    } catch(e) {
+      state = defaultState();
     }
-  } catch(e) {}
+  }
+  localStorage.setItem('shinyHunts', JSON.stringify(state));
+  setSyncStatus('ok','✓ Loaded ' + new Date().toLocaleTimeString());
+  renderTables();
+  startAutoRefresh();
 }
 
 function saveState() {
   localStorage.setItem('shinyHunts', JSON.stringify(state));
+  pushState(state);
 }
 
 function selectPlayer(player) {
