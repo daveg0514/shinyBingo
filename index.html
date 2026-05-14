@@ -475,9 +475,16 @@ async function pushState(stateData) {
       headers:{'Content-Type':'application/json','X-Master-Key':MASTER_KEY},
       body:JSON.stringify(stateData)
     });
-    if (!res.ok) { setSyncStatus('err','✗ Save failed'); return; }
+    if (!res.ok) { 
+      setSyncStatus('err','✗ Save failed'); 
+      return false;
+    }
     setSyncStatus('ok','✓ Saved ' + new Date().toLocaleTimeString());
-  } catch(e) { setSyncStatus('err','✗ Save failed'); }
+    return true;
+  } catch(e) { 
+    setSyncStatus('err','✗ Save failed'); 
+    return false;
+  }
 }
 
 async function pullState() {
@@ -502,7 +509,7 @@ function startAutoRefresh() {
     localStorage.setItem('shinyHunts', JSON.stringify(state));
     renderTables();
     setSyncStatus('ok','✓ Refreshed ' + new Date().toLocaleTimeString());
-  }, 30000);
+  }, 10000); // Changed from 30000 to 10000 (10 seconds)
 }
 
 // State
@@ -541,9 +548,9 @@ async function loadAndRender() {
   startAutoRefresh();
 }
 
-function saveState() {
+async function saveState() {
   localStorage.setItem('shinyHunts', JSON.stringify(state));
-  pushState(state);
+  await pushState(state);
 }
 
 function selectPlayer(player) {
@@ -690,7 +697,7 @@ function respinPokemon() {
   };
 }
 
-function addToList() {
+async function addToList() {
   if (!currentResult) return;
   
   state[selectedPlayer].push({
@@ -698,7 +705,7 @@ function addToList() {
     id: Date.now()
   });
   
-  saveState();
+  await saveState();
   renderTables();
   
   document.getElementById('addBtn').disabled = true;
@@ -706,8 +713,21 @@ function addToList() {
 }
 
 function deleteHunt(player, id) {
+  console.log('deleteHunt called with player:', player, 'id:', id, 'type:', typeof id);
+  console.log('Current state:', state);
+  
   if (!confirm('Delete this hunt?')) return;
-  state[player] = state[player].filter(h => h.id !== id);
+  
+  // Convert id to number if it's a string
+  const numId = typeof id === 'string' ? parseInt(id) : id;
+  
+  console.log('Filtering with numId:', numId);
+  state[player] = state[player].filter(h => {
+    console.log('Checking hunt id:', h.id, 'against', numId, 'match:', h.id !== numId);
+    return h.id !== numId;
+  });
+  
+  console.log('State after filter:', state);
   saveState();
   renderTables();
 }
@@ -726,16 +746,31 @@ function renderTable(player) {
     return;
   }
   
-  tbody.innerHTML = hunts.map(hunt => `
+  tbody.innerHTML = hunts.map((hunt, index) => `
     <tr>
       <td>${hunt.game}</td>
       <td>${hunt.method}</td>
       <td>${hunt.pokemon}</td>
       <td>
-        <button class="delete-btn" onclick="deleteHunt('${player}', ${hunt.id})">×</button>
+        <button class="delete-btn" onclick="deleteHuntByIndex('${player}', ${index})">×</button>
       </td>
     </tr>
   `).join('');
+}
+
+async function deleteHuntByIndex(player, index) {
+  alert('Delete function called for ' + player + ' index ' + index);
+  
+  if (!confirm('Delete this hunt?')) return;
+  
+  // Delete from state
+  state[player].splice(index, 1);
+  
+  // Save to server and wait for it to complete
+  await saveState();
+  
+  // Re-render
+  renderTables();
 }
 
 // Initialize
