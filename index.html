@@ -1170,6 +1170,55 @@ async function saveState() {
 
 function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+const METHOD_WEIGHTS = {
+  'Wild Encounter':           10,
+  'Soft Reset (Starters)':     8,
+  'Soft Reset (Legendaries)':  8,
+  'DexNav':                    7,
+  'SOS Battle':                7,
+  'Masuda Method':             6,
+  'Horde Encounter':           6,
+  'Catch Combo':               6,
+  'Mass Outbreak':             6,
+  'Massive Mass Outbreak':     6,
+  'Outbreak':                  6,
+  'Sandwich Method':           6,
+  'Headbutt':                  5,
+  'Dynamax Adventure':         5,
+  'Max Raid Battle':           5,
+  'Space-Time Distortion':     5,
+  'Ultra Wormhole':            5,
+  'Poké Radar':                5,
+  'Rustling Grass':            4,
+  'Dark Grass':                4,
+  'Surfing':                   3,
+  'Dark Water Surfing':        3,
+  'Yellow Flowers':            3,
+  'Purple Flowers':            3,
+  'Red Flowers':               3,
+  'Rock Smash':                3,
+  'Dust Clouds':               3,
+  'Tera Raid':                 3,
+  'Shiny Charm Boost':         3,
+  'Bridge Shadow':             2,
+  'Super Rod':                 2,
+  'Fishing':                   2,
+  'Good Rod':                  1,
+  'Old Rod':                   1,
+  'Dark Water Fishing':        1,
+};
+
+function weightedRandom(methods) {
+  const weights = methods.map(m => METHOD_WEIGHTS[m] ?? 4);
+  const total   = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < methods.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return methods[i];
+  }
+  return methods[methods.length - 1];
+}
+
 function setLocRespinEnabled(game) {
   document.getElementById('respinLocBtn').disabled = !hasCsvData(game);
 }
@@ -1201,7 +1250,7 @@ function spin() {
   // Pre-compute the final result
   const selectedGame = getRandom(GAMES);
   const methods      = getMethodsForGame(selectedGame);
-  const method       = getRandom(methods);
+  const method       = weightedRandom(methods);
   const encounter    = pickEncounterForMethod(selectedGame, method);
   const finalLoc     = encounter.location;
   const finalPoke    = encounter.pokemon;
@@ -1297,7 +1346,7 @@ function respinGame() {
 
   const newGame    = getRandom(GAMES);
   const newMethods = getMethodsForGame(newGame);
-  const newMethod  = getRandom(newMethods);
+  const newMethod  = weightedRandom(newMethods);
   const enc        = pickEncounterForMethod(newGame, newMethod);
 
   landReel(gameEl,     newGame);
@@ -1320,7 +1369,7 @@ function respinMethod() {
   const pokemonEl  = document.getElementById('pokemon');
 
   const newMethods = getMethodsForGame(currentGame);
-  const newMethod  = getRandom(newMethods);
+  const newMethod  = weightedRandom(newMethods);
   const enc        = pickEncounterForMethod(currentGame, newMethod);
 
   landReel(methodEl,   newMethod);
