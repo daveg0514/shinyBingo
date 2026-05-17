@@ -55,7 +55,7 @@ body::before {
   z-index: 0;
 }
 
-.container { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+.container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
 
 /* ── HEADER ── */
 .header {
@@ -155,7 +155,7 @@ body::before {
 /* ── REELS TRAY ── */
 .slots {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   background: #04080e;
   border-radius: 12px;
@@ -216,7 +216,7 @@ body::before {
 }
 
 .slot-value {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--gold);
   min-height: 68px;
@@ -272,10 +272,15 @@ body::before {
   z-index: 3;
 }
 
-.respin-btn:hover {
+.respin-btn:hover:not(:disabled) {
   border-color: var(--gold-lo);
   color: var(--gold);
   background: rgba(244,201,78,.1);
+}
+
+.respin-btn:disabled {
+  opacity: .2;
+  cursor: not-allowed;
 }
 
 /* ── CONTROLS ── */
@@ -421,7 +426,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 480px;
+  max-height: 520px;
   overflow-y: auto;
 }
 
@@ -434,10 +439,11 @@ body::before {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto auto;
-  gap: 8px;
+  grid-template-columns: 1fr 1fr auto auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
   align-items: center;
   position: relative;
   overflow: hidden;
@@ -459,6 +465,14 @@ body::before {
 
 .hunt-card.status-caught  { border-color: rgba(46,204,113,.25); background: rgba(46,204,113,.04); }
 .hunt-card.status-caught::before  { background: var(--green); box-shadow: 0 0 6px rgba(46,204,113,.6); }
+
+/* Card cell layout */
+.hc-game    { grid-column: 1; grid-row: 1; }
+.hc-method  { grid-column: 2; grid-row: 1; }
+.hc-loc     { grid-column: 1; grid-row: 2; font-size: 9.5px; color: var(--muted); }
+.hc-pokemon { grid-column: 2; grid-row: 2; color: var(--gold); font-weight: 600; }
+.hunt-card .status-badge { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+.hunt-card .delete-btn   { grid-column: 4; grid-row: 1 / 3; align-self: center; }
 
 .hunt-cell {
   font-size: 11px;
@@ -541,12 +555,14 @@ body::before {
 }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 820px) {
-  .slots  { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .slots  { grid-template-columns: repeat(2, 1fr); }
   .tables { grid-template-columns: 1fr; }
   .header-title { font-size: 46px; }
-  .hunt-card { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 6px; }
-  .hunt-card .hunt-cell:nth-child(3) { grid-column: span 2; }
+}
+
+@media (max-width: 540px) {
+  .slots { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -576,6 +592,11 @@ body::before {
           <div class="slot-label">Method</div>
           <div class="slot-value" id="method">– – –</div>
           <button class="respin-btn" onclick="respinMethod()">⟳ Respin</button>
+        </div>
+        <div class="slot">
+          <div class="slot-label">Location</div>
+          <div class="slot-value" id="location">– – –</div>
+          <button class="respin-btn" id="respinLocBtn" onclick="respinLocation()" disabled>⟳ Respin</button>
         </div>
         <div class="slot">
           <div class="slot-label">Pokémon</div>
@@ -620,132 +641,163 @@ body::before {
 
 </div>
 
+<script src="encounter_data.js"></script>
 <script>
-const GAME_DATA = {
-  'FireRed/LeafGreen': {
-    gen: 1,
-    methods: ['Random Encounter', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing'],
-    starters: ['Bulbasaur', 'Charmander', 'Squirtle'],
-    legendaries: ['Articuno', 'Zapdos', 'Moltres', 'Mewtwo']
-  },
-  'Ruby/Sapphire/Emerald': {
+// ── FALLBACK DATA (games without CSV encounter data) ─────────────────────────
+const GAME_DATA_FALLBACK = {
+  'Omega Ruby / Alpha Sapphire': {
     gen: 3,
-    methods: ['Random Encounter', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing'],
-    starters: ['Treecko', 'Torchic', 'Mudkip'],
-    legendaries: ['Regirock', 'Regice', 'Registeel', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza']
+    methods: ['Wild Encounter','Surfing','Old Rod','Good Rod','Super Rod','Rock Smash',
+              'DexNav','Horde Encounter','Masuda Method',
+              'Soft Reset (Starters)','Soft Reset (Legendaries)'],
+    starters:   ['Treecko','Torchic','Mudkip'],
+    legendaries: ['Regirock','Regice','Registeel','Latias','Latios','Kyogre','Groudon','Rayquaza',
+                  'Deoxys','Uxie','Mesprit','Azelf','Dialga','Palkia','Heatran','Regigigas',
+                  'Giratina','Cresselia','Tornadus','Thundurus','Reshiram','Zekrom','Landorus','Kyurem']
   },
-  'Diamond/Pearl/Platinum': {
-    gen: 4,
-    methods: ['Random Encounter', 'Poke Radar', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing'],
-    starters: ['Turtwig', 'Chimchar', 'Piplup'],
-    legendaries: ['Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia']
-  },
-  'HeartGold/SoulSilver': {
-    gen: 4,
-    methods: ['Random Encounter', 'Poke Radar', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing', 'Headbutt'],
-    starters: ['Chikorita', 'Cyndaquil', 'Totodile'],
-    legendaries: ['Raikou', 'Entei', 'Suicune', 'Lugia', 'Ho-Oh', 'Articuno', 'Zapdos', 'Moltres', 'Mewtwo', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza']
-  },
-  'Black/White': {
-    gen: 5,
-    methods: ['Random Encounter', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing'],
-    starters: ['Snivy', 'Tepig', 'Oshawott'],
-    legendaries: ['Cobalion', 'Terrakion', 'Virizion', 'Tornadus', 'Thundurus', 'Reshiram', 'Zekrom', 'Landorus', 'Kyurem']
-  },
-  'Black 2/White 2': {
-    gen: 5,
-    methods: ['Random Encounter', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing', 'Hidden Grotto'],
-    starters: ['Snivy', 'Tepig', 'Oshawott'],
-    legendaries: ['Cobalion', 'Terrakion', 'Virizion', 'Tornadus', 'Thundurus', 'Reshiram', 'Zekrom', 'Landorus', 'Kyurem', 'Uxie', 'Mesprit', 'Azelf', 'Cresselia', 'Heatran', 'Regigigas', 'Latias', 'Latios']
-  },
-  'X/Y': {
-    gen: 6,
-    methods: ['Random Encounter', 'Friend Safari', 'Horde Encounter', 'Chain Fishing', 'Soft Reset (Starters)', 'Masuda Method'],
-    starters: ['Chespin', 'Fennekin', 'Froakie', 'Bulbasaur', 'Charmander', 'Squirtle'],
-    legendaries: ['Xerneas', 'Yveltal', 'Zygarde', 'Articuno', 'Zapdos', 'Moltres', 'Mewtwo']
-  },
-  'Omega Ruby/Alpha Sapphire': {
-    gen: 6,
-    methods: ['Random Encounter', 'DexNav', 'Horde Encounter', 'Chain Fishing', 'Soft Reset (Starters)', 'Masuda Method'],
-    starters: ['Treecko', 'Torchic', 'Mudkip'],
-    legendaries: ['Regirock', 'Regice', 'Registeel', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza', 'Deoxys', 'Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia', 'Tornadus', 'Thundurus', 'Reshiram', 'Zekrom', 'Landorus', 'Kyurem']
-  },
-  'Sun/Moon': {
+  'Sun / Moon': {
     gen: 7,
-    methods: ['Random Encounter', 'SOS Battle', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Masuda Method'],
-    starters: ['Rowlet', 'Litten', 'Popplio'],
-    legendaries: ['Tapu Koko', 'Tapu Lele', 'Tapu Bulu', 'Tapu Fini', 'Cosmog', 'Solgaleo', 'Lunala', 'Necrozma']
+    methods: ['Wild Encounter','SOS Battle','Surfing','Old Rod','Good Rod','Super Rod',
+              'Masuda Method','Soft Reset (Starters)','Soft Reset (Legendaries)'],
+    starters:   ['Rowlet','Litten','Popplio'],
+    legendaries: ['Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Cosmog','Solgaleo','Lunala','Necrozma']
   },
-  'Ultra Sun/Ultra Moon': {
+  'Ultra Sun / Ultra Moon': {
     gen: 7,
-    methods: ['Random Encounter', 'SOS Battle', 'Ultra Wormhole', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Masuda Method'],
-    starters: ['Rowlet', 'Litten', 'Popplio'],
-    legendaries: ['Tapu Koko', 'Tapu Lele', 'Tapu Bulu', 'Tapu Fini', 'Cosmog', 'Solgaleo', 'Lunala', 'Necrozma'],
-    ultraWormhole: ['Articuno', 'Zapdos', 'Moltres', 'Mewtwo', 'Raikou', 'Entei', 'Suicune', 'Lugia', 'Ho-Oh', 'Regirock', 'Regice', 'Registeel', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza', 'Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Giratina', 'Cresselia', 'Tornadus', 'Thundurus', 'Reshiram', 'Zekrom', 'Landorus', 'Kyurem', 'Xerneas', 'Yveltal']
+    methods: ['Wild Encounter','SOS Battle','Ultra Wormhole','Surfing','Old Rod','Good Rod','Super Rod',
+              'Masuda Method','Soft Reset (Starters)','Soft Reset (Legendaries)'],
+    starters:   ['Rowlet','Litten','Popplio'],
+    legendaries: ['Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Solgaleo','Lunala','Necrozma',
+                  'Articuno','Zapdos','Moltres','Mewtwo','Raikou','Entei','Suicune','Lugia','Ho-Oh',
+                  'Regirock','Regice','Registeel','Latias','Latios','Kyogre','Groudon','Rayquaza',
+                  'Uxie','Mesprit','Azelf','Dialga','Palkia','Heatran','Giratina','Cresselia',
+                  'Tornadus','Thundurus','Reshiram','Zekrom','Landorus','Kyurem','Xerneas','Yveltal'],
+    ultraWormhole: ['Articuno','Zapdos','Moltres','Mewtwo','Raikou','Entei','Suicune','Lugia','Ho-Oh',
+                    'Regirock','Regice','Registeel','Latias','Latios','Kyogre','Groudon','Rayquaza',
+                    'Uxie','Mesprit','Azelf','Dialga','Palkia','Heatran','Giratina','Cresselia',
+                    'Tornadus','Thundurus','Reshiram','Zekrom','Landorus','Kyurem','Xerneas','Yveltal']
   },
-  "Let's Go Pikachu/Eevee": {
+  "Let's Go Pikachu / Eevee": {
     gen: 1,
-    methods: ['Catch Combo', 'Soft Reset (Legendaries)', 'Shiny Charm Boost'],
-    starters: ['Pikachu', 'Eevee'],
-    legendaries: ['Articuno', 'Zapdos', 'Moltres', 'Mewtwo']
+    methods: ['Catch Combo','Soft Reset (Legendaries)','Shiny Charm Boost'],
+    starters:   ['Pikachu','Eevee'],
+    legendaries: ['Articuno','Zapdos','Moltres','Mewtwo']
   },
-  'Sword/Shield': {
+  'Sword / Shield': {
     gen: 8,
-    methods: ['Random Encounter', 'Masuda Method', 'Max Raid Battle', 'Dynamax Adventure', 'Fishing'],
-    starters: ['Grookey', 'Scorbunny', 'Sobble'],
-    legendaries: ['Zacian', 'Zamazenta', 'Eternatus'],
-    dynamaxAdventure: ['Articuno', 'Zapdos', 'Moltres', 'Mewtwo', 'Raikou', 'Entei', 'Suicune', 'Lugia', 'Ho-Oh', 'Latias', 'Latios', 'Kyogre', 'Groudon', 'Rayquaza', 'Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Giratina', 'Cresselia', 'Tornadus', 'Thundurus', 'Reshiram', 'Zekrom', 'Landorus', 'Kyurem', 'Xerneas', 'Yveltal', 'Zygarde', 'Tapu Koko', 'Tapu Lele', 'Tapu Bulu', 'Tapu Fini', 'Solgaleo', 'Lunala', 'Necrozma']
+    methods: ['Wild Encounter','Masuda Method','Max Raid Battle','Dynamax Adventure','Fishing'],
+    starters:   ['Grookey','Scorbunny','Sobble'],
+    legendaries: ['Zacian','Zamazenta','Eternatus'],
+    dynamaxAdventure: ['Articuno','Zapdos','Moltres','Mewtwo','Raikou','Entei','Suicune','Lugia','Ho-Oh',
+                       'Latias','Latios','Kyogre','Groudon','Rayquaza','Uxie','Mesprit','Azelf',
+                       'Dialga','Palkia','Heatran','Giratina','Cresselia','Tornadus','Thundurus',
+                       'Reshiram','Zekrom','Landorus','Kyurem','Xerneas','Yveltal','Zygarde',
+                       'Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Solgaleo','Lunala','Necrozma']
   },
-  'Brilliant Diamond/Shining Pearl': {
+  'Brilliant Diamond / Shining Pearl': {
     gen: 4,
-    methods: ['Random Encounter', 'Poke Radar', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)', 'Fishing'],
-    starters: ['Turtwig', 'Chimchar', 'Piplup'],
-    legendaries: ['Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia']
-  },
-  'Scarlet/Violet': {
-    gen: 9,
-    methods: ['Random Encounter', 'Outbreak', 'Masuda Method', 'Sandwich Method', 'Tera Raid'],
-    starters: ['Sprigatito', 'Fuecoco', 'Quaxly'],
-    legendaries: ['Koraidon', 'Miraidon', 'Wo-Chien', 'Chien-Pao', 'Ting-Lu', 'Chi-Yu']
+    methods: ['Wild Encounter','Poké Radar','Surfing','Old Rod','Good Rod','Super Rod',
+              'Masuda Method','Soft Reset (Starters)','Soft Reset (Legendaries)'],
+    starters:   ['Turtwig','Chimchar','Piplup'],
+    legendaries: ['Uxie','Mesprit','Azelf','Dialga','Palkia','Heatran','Regigigas','Giratina','Cresselia']
   },
   'Legends: Arceus': {
     gen: 4,
-    methods: ['Mass Outbreak', 'Massive Mass Outbreak', 'Distortion', 'Soft Reset (Starters)', 'Soft Reset (Legendaries)'],
-    starters: ['Rowlet', 'Cyndaquil', 'Oshawott'],
-    legendaries: ['Uxie', 'Mesprit', 'Azelf', 'Dialga', 'Palkia', 'Heatran', 'Regigigas', 'Giratina', 'Cresselia', 'Tornadus', 'Thundurus', 'Landorus', 'Enamorus']
-  }
+    methods: ['Mass Outbreak','Massive Mass Outbreak','Space-Time Distortion',
+              'Soft Reset (Starters)','Soft Reset (Legendaries)'],
+    starters:   ['Rowlet','Cyndaquil','Oshawott'],
+    legendaries: ['Uxie','Mesprit','Azelf','Dialga','Palkia','Heatran','Regigigas','Giratina',
+                  'Cresselia','Tornadus','Thundurus','Landorus','Enamorus']
+  },
+  'Scarlet / Violet': {
+    gen: 9,
+    methods: ['Wild Encounter','Outbreak','Sandwich Method','Tera Raid','Masuda Method',
+              'Soft Reset (Starters)'],
+    starters:   ['Sprigatito','Fuecoco','Quaxly'],
+    legendaries: ['Koraidon','Miraidon','Wo-Chien','Chien-Pao','Ting-Lu','Chi-Yu']
+  },
 };
-
-const GAMES = Object.keys(GAME_DATA);
 
 const pokemonByGen = {
-  1: ['Bulbasaur','Charmander','Squirtle','Pikachu','Eevee','Mewtwo','Mew','Dragonite','Snorlax','Gengar','Alakazam','Machamp','Gyarados','Lapras','Articuno','Zapdos','Moltres','Dratini','Arcanine','Ninetales','Vileplume','Poliwrath','Victreebel','Golem','Slowbro','Magneton','Cloyster','Hypno','Electrode','Exeggutor','Marowak','Hitmonlee','Hitmonchan','Rhydon','Chansey','Kangaskhan','Starmie','Mr. Mime','Scyther','Jynx','Electabuzz','Magmar','Pinsir','Tauros','Vaporeon','Jolteon','Flareon','Porygon','Omanyte','Kabuto','Aerodactyl'],
-  2: ['Chikorita','Cyndaquil','Totodile','Ampharos','Espeon','Umbreon','Tyranitar','Lugia','Ho-Oh','Celebi','Heracross','Scizor','Kingdra','Steelix','Houndoom','Blissey','Raikou','Entei','Suicune','Larvitar','Crobat','Politoed','Slowking','Skarmory','Mantine','Donphan','Porygon2','Miltank'],
-  3: ['Treecko','Torchic','Mudkip','Gardevoir','Blaziken','Swampert','Sceptile','Aggron','Salamence','Metagross','Rayquaza','Groudon','Kyogre','Deoxys','Latias','Latios','Jirachi','Absol','Flygon','Milotic','Walrein','Slaking','Shedinja','Exploud','Hariyama','Breloom','Manectric','Altaria','Sharpedo','Camerupt'],
-  4: ['Turtwig','Chimchar','Piplup','Lucario','Garchomp','Dialga','Palkia','Giratina','Arceus','Darkrai','Shaymin','Cresselia','Heatran','Regigigas','Luxray','Staraptor','Roserade','Weavile','Gliscor','Mamoswine','Gallade','Dusknoir','Froslass','Rotom','Togekiss','Magnezone','Electivire','Magmortar','Yanmega','Leafeon','Glaceon'],
-  5: ['Snivy','Tepig','Oshawott','Serperior','Emboar','Samurott','Excadrill','Reuniclus','Zoroark','Chandelure','Haxorus','Hydreigon','Volcarona','Reshiram','Zekrom','Kyurem','Victini','Cobalion','Terrakion','Virizion','Landorus','Thundurus','Tornadus','Cofagrigus','Ferrothorn','Eelektross','Braviary','Mandibuzz','Mienshao'],
-  6: ['Chespin','Fennekin','Froakie','Greninja','Delphox','Chesnaught','Talonflame','Aegislash','Sylveon','Goodra','Noivern','Tyrantrum','Aurorus','Xerneas','Yveltal','Zygarde','Diancie','Hoopa','Volcanion','Hawlucha','Heliolisk','Klefki','Dragalge','Clawitzer'],
-  7: ['Rowlet','Litten','Popplio','Decidueye','Incineroar','Primarina','Mimikyu','Solgaleo','Lunala','Necrozma','Lycanroc','Kommo-o','Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Toxapex','Golisopod','Salazzle','Vikavolt','Xurkitree','Celesteela','Kartana','Guzzlord','Buzzwole','Pheromosa'],
-  8: ['Grookey','Scorbunny','Sobble','Rillaboom','Cinderace','Inteleon','Corviknight','Toxtricity','Dragapult','Grimmsnarl','Zacian','Zamazenta','Eternatus','Urshifu','Regieleki','Regidrago','Calyrex','Spectrier','Glastrier','Dracovish','Dracozolt','Arctozolt','Arctovish','Falinks',"Sirfetch'd",'Obstagoon'],
-  9: ['Sprigatito','Fuecoco','Quaxly','Meowscarada','Skeledirge','Quaquaval','Koraidon','Miraidon','Tinkaton','Garganacl','Annihilape','Kingambit','Great Tusk','Iron Treads','Baxcalibur','Gholdengo','Ceruledge','Armarouge','Toedscruel','Clodsire','Farigiraf','Wo-Chien','Chien-Pao','Ting-Lu','Chi-Yu']
+  1: ['Bulbasaur','Charmander','Squirtle','Pikachu','Eevee','Mewtwo','Dragonite','Snorlax','Gengar',
+      'Alakazam','Machamp','Gyarados','Lapras','Articuno','Zapdos','Moltres','Dratini','Arcanine',
+      'Ninetales','Vileplume','Golem','Slowbro','Magneton','Cloyster','Hypno','Electrode','Exeggutor',
+      'Marowak','Hitmonlee','Hitmonchan','Rhydon','Chansey','Kangaskhan','Starmie','Scyther','Jynx',
+      'Electabuzz','Magmar','Pinsir','Tauros','Vaporeon','Jolteon','Flareon','Porygon','Aerodactyl'],
+  2: ['Chikorita','Cyndaquil','Totodile','Ampharos','Espeon','Umbreon','Tyranitar','Lugia','Ho-Oh',
+      'Heracross','Scizor','Kingdra','Steelix','Houndoom','Blissey','Raikou','Entei','Suicune','Larvitar',
+      'Crobat','Skarmory','Mantine','Donphan','Miltank'],
+  3: ['Treecko','Torchic','Mudkip','Gardevoir','Blaziken','Swampert','Aggron','Salamence','Metagross',
+      'Rayquaza','Groudon','Kyogre','Latias','Latios','Absol','Flygon','Milotic','Walrein','Slaking',
+      'Breloom','Manectric','Altaria','Sharpedo','Camerupt'],
+  4: ['Turtwig','Chimchar','Piplup','Lucario','Garchomp','Dialga','Palkia','Giratina','Arceus','Darkrai',
+      'Shaymin','Cresselia','Heatran','Luxray','Staraptor','Roserade','Weavile','Gliscor','Mamoswine',
+      'Gallade','Rotom','Togekiss','Glaceon','Leafeon'],
+  5: ['Snivy','Tepig','Oshawott','Serperior','Emboar','Samurott','Excadrill','Zoroark','Chandelure',
+      'Haxorus','Hydreigon','Volcarona','Reshiram','Zekrom','Kyurem','Cobalion','Terrakion','Virizion',
+      'Landorus','Thundurus','Tornadus','Ferrothorn','Braviary'],
+  6: ['Chespin','Fennekin','Froakie','Greninja','Aegislash','Sylveon','Goodra','Noivern','Xerneas',
+      'Yveltal','Zygarde','Hawlucha','Heliolisk','Dragalge','Clawitzer'],
+  7: ['Rowlet','Litten','Popplio','Decidueye','Incineroar','Primarina','Mimikyu','Solgaleo','Lunala',
+      'Necrozma','Lycanroc','Kommo-o','Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Toxapex',
+      'Golisopod','Salazzle','Vikavolt'],
+  8: ['Grookey','Scorbunny','Sobble','Rillaboom','Cinderace','Inteleon','Corviknight','Toxtricity',
+      'Dragapult','Grimmsnarl','Zacian','Zamazenta','Eternatus','Urshifu','Regieleki','Regidrago'],
+  9: ['Sprigatito','Fuecoco','Quaxly','Meowscarada','Skeledirge','Quaquaval','Koraidon','Miraidon',
+      'Tinkaton','Garganacl','Annihilape','Kingambit','Baxcalibur','Gholdengo','Ceruledge','Armarouge',
+      'Wo-Chien','Chien-Pao','Ting-Lu','Chi-Yu']
 };
 
-function getPokemonForGen(gen) {
+function getPokemonForFallback(game, method) {
+  const d = GAME_DATA_FALLBACK[game];
+  if (!d) return ['???'];
+  if (method === 'Soft Reset (Starters)' || method === 'Catch Combo') return d.starters || [];
+  if (method === 'Soft Reset (Legendaries)') return d.legendaries || [];
+  if (method === 'Ultra Wormhole')     return d.ultraWormhole || d.legendaries || [];
+  if (method === 'Dynamax Adventure')  return d.dynamaxAdventure || d.legendaries || [];
   let out = [];
-  for (let i = 1; i <= gen; i++) out = out.concat(pokemonByGen[i]);
-  return out;
+  for (let i = 1; i <= d.gen; i++) out = out.concat(pokemonByGen[i] || []);
+  return out.length ? out : ['???'];
 }
 
-function getPokemonForMethod(game, method) {
-  const d = GAME_DATA[game];
-  if (method === 'Soft Reset (Starters)'   && d.starters)         return d.starters;
-  if (method === 'Soft Reset (Legendaries)' && d.legendaries)      return d.legendaries;
-  if (method === 'Ultra Wormhole'           && d.ultraWormhole)    return d.ultraWormhole;
-  if (method === 'Dynamax Adventure'        && d.dynamaxAdventure) return d.dynamaxAdventure;
-  return getPokemonForGen(d.gen);
+// All games: CSV-backed first, then fallback
+const GAMES_DB = typeof ENCOUNTER_DB !== 'undefined' ? Object.keys(ENCOUNTER_DB) : [];
+const GAMES_FB = Object.keys(GAME_DATA_FALLBACK);
+const GAMES    = [...GAMES_DB, ...GAMES_FB];
+
+function getMethodsForGame(game) {
+  if (ENCOUNTER_DB?.[game]) return Object.keys(ENCOUNTER_DB[game]);
+  return GAME_DATA_FALLBACK[game]?.methods || [];
 }
 
-// ── JSONBIN SYNC ──
+function hasCsvData(game) {
+  return Boolean(ENCOUNTER_DB?.[game]);
+}
+
+function pickEncounterForMethod(game, method) {
+  const pairs = ENCOUNTER_DB?.[game]?.[method];
+  if (pairs && pairs.length) {
+    const p = getRandom(pairs);
+    return { location: p.location, pokemon: p.pokemon };
+  }
+  const pokes = getPokemonForFallback(game, method);
+  return { location: null, pokemon: pokes.length ? getRandom(pokes) : '???' };
+}
+
+function pickPokemonAtLocation(game, method, location) {
+  const pairs = ENCOUNTER_DB?.[game]?.[method];
+  if (!pairs) return null;
+  const atLoc = pairs.filter(p => p.location === location);
+  return atLoc.length ? getRandom(atLoc).pokemon : getRandom(pairs).pokemon;
+}
+
+function getLocationsForMethod(game, method) {
+  const pairs = ENCOUNTER_DB?.[game]?.[method];
+  if (!pairs) return [];
+  return [...new Set(pairs.map(p => p.location))];
+}
+
+// ── JSONBIN SYNC ──────────────────────────────────────────────────────────────
 const MASTER_KEY = '$2a$10$y78gUbDpbg0cgnCLtYOgO.YI6kWqvi1Z0F45uFkoC2cpPACtN.G7y';
 const binId      = '69ed383a856a6821897180c7';
 let autoRefreshInterval = null;
@@ -801,13 +853,14 @@ function startAutoRefresh() {
   }, 5000);
 }
 
-// ── STATE ──
-let selectedPlayer = 'dave';
-let currentResult  = null;
-let state          = defaultState();
-let currentGame    = null;
-let currentMethod  = null;
-let isSaving       = false;
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let selectedPlayer  = 'dave';
+let currentResult   = null;
+let state           = defaultState();
+let currentGame     = null;
+let currentMethod   = null;
+let currentLocation = null;
+let isSaving        = false;
 
 async function loadAndRender() {
   setSyncStatus('loading', '⟳ Loading...');
@@ -842,7 +895,11 @@ function selectPlayer(player) {
 
 function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-// ── SPIN ──
+function setLocRespinEnabled(game) {
+  document.getElementById('respinLocBtn').disabled = !hasCsvData(game);
+}
+
+// ── SPIN ──────────────────────────────────────────────────────────────────────
 function landReel(el, value) {
   el.classList.remove('spinning');
   el.textContent = value;
@@ -851,24 +908,39 @@ function landReel(el, value) {
 }
 
 function spin() {
-  const spinBtn  = document.getElementById('spinBtn');
-  const addBtn   = document.getElementById('addBtn');
-  const gameEl   = document.getElementById('game');
-  const methodEl = document.getElementById('method');
-  const pokemonEl= document.getElementById('pokemon');
+  const spinBtn   = document.getElementById('spinBtn');
+  const addBtn    = document.getElementById('addBtn');
+  const gameEl    = document.getElementById('game');
+  const methodEl  = document.getElementById('method');
+  const locationEl= document.getElementById('location');
+  const pokemonEl = document.getElementById('pokemon');
 
   spinBtn.disabled = true;
   addBtn.disabled  = true;
 
   gameEl.classList.add('spinning');
   methodEl.classList.add('spinning');
+  locationEl.classList.add('spinning');
   pokemonEl.classList.add('spinning');
 
-  const selectedGame     = getRandom(GAMES);
-  const availableMethods = GAME_DATA[selectedGame].methods;
-  const method           = getRandom(availableMethods);
-  const availablePokemon = getPokemonForMethod(selectedGame, method);
-  const pokemon          = getRandom(availablePokemon);
+  // Pre-compute the final result
+  const selectedGame = getRandom(GAMES);
+  const methods      = getMethodsForGame(selectedGame);
+  const method       = getRandom(methods);
+  const encounter    = pickEncounterForMethod(selectedGame, method);
+  const finalLoc     = encounter.location;
+  const finalPoke    = encounter.pokemon;
+
+  // Animation helpers – cycle random values from this game's data
+  function animMethod() { return getRandom(methods); }
+  function animLocPoke(m) {
+    const pairs = ENCOUNTER_DB?.[selectedGame]?.[m];
+    if (pairs && pairs.length) {
+      const p = getRandom(pairs);
+      return { loc: p.location, poke: p.pokemon };
+    }
+    return { loc: '—', poke: getRandom(getPokemonForFallback(selectedGame, m)) };
+  }
 
   let spinCount = 0;
   let phase     = 1;
@@ -877,80 +949,155 @@ function spin() {
     spinCount++;
 
     if (phase === 1) {
-      gameEl.textContent   = getRandom(GAMES);
-      const tm             = getRandom(availableMethods);
+      // Spin all reels; land Game
+      gameEl.textContent = getRandom(GAMES);
+      const tm = animMethod();
       methodEl.textContent = tm;
-      pokemonEl.textContent= getRandom(getPokemonForMethod(selectedGame, tm));
+      const ap = animLocPoke(tm);
+      locationEl.textContent = ap.loc;
+      pokemonEl.textContent  = ap.poke;
 
       if (spinCount >= 20) {
         landReel(gameEl, selectedGame);
         currentGame = selectedGame;
-        spinCount   = 0;
-        phase       = 2;
+        spinCount = 0; phase = 2;
       }
 
     } else if (phase === 2) {
-      const tm             = getRandom(availableMethods);
+      // Spin method/location/pokemon; land Method
+      const tm = animMethod();
       methodEl.textContent = tm;
-      pokemonEl.textContent= getRandom(getPokemonForMethod(selectedGame, tm));
+      const ap = animLocPoke(tm);
+      locationEl.textContent = ap.loc;
+      pokemonEl.textContent  = ap.poke;
 
-      if (spinCount >= 30) {
+      if (spinCount >= 25) {
         landReel(methodEl, method);
         currentMethod = method;
-        spinCount     = 0;
-        phase         = 3;
+        spinCount = 0; phase = 3;
+      }
+
+    } else if (phase === 3) {
+      // Spin location/pokemon; land Location
+      const locs = getLocationsForMethod(selectedGame, method);
+      locationEl.textContent = locs.length ? getRandom(locs) : '—';
+      const pairs = ENCOUNTER_DB?.[selectedGame]?.[method];
+      pokemonEl.textContent = pairs ? getRandom(pairs).pokemon
+        : getRandom(getPokemonForFallback(selectedGame, method));
+
+      if (spinCount >= 25) {
+        landReel(locationEl, finalLoc || '—');
+        currentLocation = finalLoc;
+        spinCount = 0; phase = 4;
       }
 
     } else {
-      pokemonEl.textContent = getRandom(availablePokemon);
+      // Spin pokemon only (filtered to the landed location if available)
+      const pairs = ENCOUNTER_DB?.[selectedGame]?.[method];
+      if (pairs && finalLoc) {
+        const atLoc = pairs.filter(p => p.location === finalLoc);
+        pokemonEl.textContent = getRandom(atLoc.length ? atLoc : pairs).pokemon;
+      } else {
+        pokemonEl.textContent = getRandom(getPokemonForFallback(selectedGame, method));
+      }
 
-      if (spinCount >= 30) {
+      if (spinCount >= 25) {
         clearInterval(iv);
-        landReel(pokemonEl, pokemon);
-        currentResult    = { pokemon, method, game: selectedGame };
+        landReel(pokemonEl, finalPoke);
+        currentResult    = { pokemon: finalPoke, method, location: finalLoc, game: selectedGame };
         spinBtn.disabled = false;
         addBtn.disabled  = false;
+        setLocRespinEnabled(selectedGame);
       }
     }
   }, 100);
 }
 
+// ── RESPIN ────────────────────────────────────────────────────────────────────
 function respinGame() {
-  const gameEl    = document.getElementById('game');
-  const methodEl  = document.getElementById('method');
-  const pokemonEl = document.getElementById('pokemon');
-  const newGame   = getRandom(GAMES);
-  const newMethod = getRandom(GAME_DATA[newGame].methods);
-  const newPokemon= getRandom(getPokemonForMethod(newGame, newMethod));
-  landReel(gameEl, newGame);
-  landReel(methodEl, newMethod);
-  landReel(pokemonEl, newPokemon);
-  currentGame   = newGame;
-  currentMethod = newMethod;
-  currentResult = { pokemon: newPokemon, method: newMethod, game: newGame };
+  const gameEl     = document.getElementById('game');
+  const methodEl   = document.getElementById('method');
+  const locationEl = document.getElementById('location');
+  const pokemonEl  = document.getElementById('pokemon');
+
+  const newGame    = getRandom(GAMES);
+  const newMethods = getMethodsForGame(newGame);
+  const newMethod  = getRandom(newMethods);
+  const enc        = pickEncounterForMethod(newGame, newMethod);
+
+  landReel(gameEl,     newGame);
+  landReel(methodEl,   newMethod);
+  landReel(locationEl, enc.location || '—');
+  landReel(pokemonEl,  enc.pokemon);
+
+  currentGame     = newGame;
+  currentMethod   = newMethod;
+  currentLocation = enc.location;
+  currentResult   = { pokemon: enc.pokemon, method: newMethod, location: enc.location, game: newGame };
+  setLocRespinEnabled(newGame);
+  document.getElementById('addBtn').disabled = false;
 }
 
 function respinMethod() {
   if (!currentGame) return;
-  const methodEl  = document.getElementById('method');
-  const pokemonEl = document.getElementById('pokemon');
-  const newMethod = getRandom(GAME_DATA[currentGame].methods);
-  const newPokemon= getRandom(getPokemonForMethod(currentGame, newMethod));
-  landReel(methodEl, newMethod);
-  landReel(pokemonEl, newPokemon);
-  currentMethod = newMethod;
-  currentResult = { pokemon: newPokemon, method: newMethod, game: currentGame };
+  const methodEl   = document.getElementById('method');
+  const locationEl = document.getElementById('location');
+  const pokemonEl  = document.getElementById('pokemon');
+
+  const newMethods = getMethodsForGame(currentGame);
+  const newMethod  = getRandom(newMethods);
+  const enc        = pickEncounterForMethod(currentGame, newMethod);
+
+  landReel(methodEl,   newMethod);
+  landReel(locationEl, enc.location || '—');
+  landReel(pokemonEl,  enc.pokemon);
+
+  currentMethod   = newMethod;
+  currentLocation = enc.location;
+  currentResult   = { pokemon: enc.pokemon, method: newMethod, location: enc.location, game: currentGame };
+  document.getElementById('addBtn').disabled = false;
+}
+
+function respinLocation() {
+  if (!currentGame || !currentMethod) return;
+  const locationEl = document.getElementById('location');
+  const pokemonEl  = document.getElementById('pokemon');
+
+  const locs = getLocationsForMethod(currentGame, currentMethod);
+  if (!locs.length) return;
+
+  const newLoc   = getRandom(locs);
+  const newPoke  = pickPokemonAtLocation(currentGame, currentMethod, newLoc) || '???';
+
+  landReel(locationEl, newLoc);
+  landReel(pokemonEl,  newPoke);
+
+  currentLocation = newLoc;
+  currentResult   = { pokemon: newPoke, method: currentMethod, location: newLoc, game: currentGame };
+  document.getElementById('addBtn').disabled = false;
 }
 
 function respinPokemon() {
   if (!currentGame || !currentMethod) return;
   const pokemonEl = document.getElementById('pokemon');
-  const newPokemon= getRandom(getPokemonForMethod(currentGame, currentMethod));
-  landReel(pokemonEl, newPokemon);
-  currentResult = { pokemon: newPokemon, method: currentMethod, game: currentGame };
+
+  let newPoke;
+  const pairs = ENCOUNTER_DB?.[currentGame]?.[currentMethod];
+  if (pairs) {
+    const pool = currentLocation
+      ? pairs.filter(p => p.location === currentLocation)
+      : pairs;
+    newPoke = getRandom(pool.length ? pool : pairs).pokemon;
+  } else {
+    newPoke = getRandom(getPokemonForFallback(currentGame, currentMethod));
+  }
+
+  landReel(pokemonEl, newPoke);
+  currentResult = { pokemon: newPoke, method: currentMethod, location: currentLocation, game: currentGame };
+  document.getElementById('addBtn').disabled = false;
 }
 
-// ── ADD / STATUS / DELETE ──
+// ── ADD / STATUS / DELETE ─────────────────────────────────────────────────────
 async function addToList() {
   if (!currentResult) return;
   if (!Array.isArray(state[selectedPlayer])) state[selectedPlayer] = [];
@@ -977,7 +1124,7 @@ async function deleteHuntByIndex(player, index) {
   renderTables();
 }
 
-// ── RENDER ──
+// ── RENDER ────────────────────────────────────────────────────────────────────
 const STATUS_LABEL = { pending: '● Queued', active: '● Hunting...', caught: '✓ Caught!' };
 
 function renderTables() {
@@ -1003,12 +1150,14 @@ function renderTable(player) {
   }
 
   container.innerHTML = hunts.map((hunt, i) => {
-    const s = hunt.status || 'pending';
+    const s   = hunt.status || 'pending';
+    const loc = hunt.location || '—';
     return `
       <div class="hunt-card status-${s}">
-        <div class="hunt-cell" title="${hunt.game}">${hunt.game}</div>
-        <div class="hunt-cell" title="${hunt.method}">${hunt.method}</div>
-        <div class="hunt-cell" title="${hunt.pokemon}">${hunt.pokemon}</div>
+        <div class="hunt-cell hc-game"    title="${hunt.game}">${hunt.game}</div>
+        <div class="hunt-cell hc-method"  title="${hunt.method}">${hunt.method}</div>
+        <div class="hunt-cell hc-loc"     title="${loc}">${loc}</div>
+        <div class="hunt-cell hc-pokemon" title="${hunt.pokemon}">${hunt.pokemon}</div>
         <button class="status-badge ${s}" onclick="cycleStatus('${player}',${i})">${STATUS_LABEL[s]}</button>
         <button class="delete-btn"        onclick="deleteHuntByIndex('${player}',${i})">✕</button>
       </div>`;
