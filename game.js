@@ -46,7 +46,7 @@ function rollPokemon(exclude = []) {
   const extraGames = Object.keys(EXTRA_GAMES);
   const allGames   = [...dbGames, ...extraGames];
 
-  for (let attempt = 0; attempt < 20; attempt++) {
+  for (let attempt = 0; attempt < 40; attempt++) {
     const game = allGames[Math.floor(Math.random() * allGames.length)];
     let pool = [];
     if (typeof ENCOUNTER_DB !== 'undefined' && ENCOUNTER_DB[game]) {
@@ -57,11 +57,9 @@ function rollPokemon(exclude = []) {
     pool = [...new Set(pool.filter(Boolean))].filter(p => !exclude.includes(p));
     if (!pool.length) continue;
     const pokemon = pool[Math.floor(Math.random() * pool.length)];
-    return {game, pokemon};
+    return { game, pokemon };
   }
-  // Fallback: return anything
-  const game = allGames[0];
-  return {game, pokemon: 'Pikachu'};
+  return { game: allGames[0], pokemon: 'Pikachu' };
 }
 
 async function fetchShinySprite(name) {
@@ -78,122 +76,181 @@ async function fetchShinySprite(name) {
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 
-function defaultState() { return {dave: [], colton: []}; }
-
-function isValidState(s) {
-  return s && Array.isArray(s.dave) && Array.isArray(s.colton);
-}
+function defaultState() { return { board: [] }; }
+function isValidState(s) { return s && Array.isArray(s.board); }
 
 let state = defaultState();
+let pendingTileId = null;
+let boardGenId = 0;
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────────
+// ── BOARD GENERATION ──────────────────────────────────────────────────────────
 
-function allPokemonOnBoard() {
-  return [...state.dave, ...state.colton].map(e => e.pokemon);
+async function generateBoard() {
+  const genId = ++boardGenId;
+  const entries = [];
+  const used = [];
+
+  for (let i = 0; i < 36; i++) {
+    const { game, pokemon } = rollPokemon(used);
+    used.push(pokemon);
+    entries.push({ id: i, pokemon, game, sprite: null, claimedBy: null, found: false, revealed: false });
+  }
+
+  state.board = entries;
+  renderAll();
+  await saveState();
+
+  await Promise.all(entries.map(async ({ id, pokemon }) => {
+    const sprite = await fetchShinySprite(pokemon);
+    if (boardGenId !== genId) return;
+    const e = state.board.find(b => b.id === id);
+    if (e && sprite) { e.sprite = sprite; renderBoard(); }
+  }));
+
+  if (boardGenId === genId) await saveState();
 }
 
-async function addSpin(player) {
-  const btn = document.querySelector(`.roll-btn.${player}`);
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Rolling...'; }
+function confirmNewBoard() {
+  const claimed = state.board.filter(e => e.claimedBy).length;
+  if (claimed > 0 && !confirm(`Clear ${claimed} claimed tile(s) and generate a new board?`)) return;
+  generateBoard();
+}
 
-  const {game, pokemon} = rollPokemon(allPokemonOnBoard());
-  const id = Date.now() + Math.random();
-  state[player].push({id, pokemon, game, sprite: null});
-  renderBountyBoard();
-  saveState();
+// ── MODAL ─────────────────────────────────────────────────────────────────────
 
-  const sprite = await fetchShinySprite(pokemon);
-  const entry  = state[player].find(e => e.id === id);
-  if (sprite && entry) {
-    entry.sprite = sprite;
-    renderBountyBoard();
+function openModal(id) {
+  const entry = state.board.find(e => e.id === id);
+  if (!entry || entry.claimedBy) return;
+
+  if (!entry.revealed) {
+    entry.revealed = true;
+    renderBoard();
     saveState();
   }
 
-  if (btn) { btn.disabled = false; btn.textContent = '🎲 Roll Bounty'; }
+  pendingTileId = id;
+  const wrap = document.getElementById('modalSpriteWrap');
+  wrap.innerHTML = entry.sprite
+    ? `<img src="${entry.sprite}" alt="${entry.pokemon}" class="modal-sprite-img">`
+    : `<div style="font-size:52px;line-height:1">✨</div>`;
+  document.getElementById('modalPokemon').textContent = entry.pokemon;
+  document.getElementById('modalGame').textContent    = entry.game;
+  document.getElementById('modal').classList.remove('hidden');
 }
 
-async function rerollEntry(player, id) {
-  const entry = state[player].find(e => e.id === id);
-  if (!entry) return;
-
-  const exclude = allPokemonOnBoard().filter(p => p !== entry.pokemon);
-  const {game, pokemon} = rollPokemon(exclude);
-  entry.pokemon = pokemon;
-  entry.game    = game;
-  entry.sprite  = null;
-  entry.found   = false;
-  renderBountyBoard();
-  saveState();
-
-  const sprite = await fetchShinySprite(pokemon);
-  const fresh  = state[player].find(e => e.id === id);
-  if (sprite && fresh && fresh.pokemon === pokemon) {
-    fresh.sprite = sprite;
-    renderBountyBoard();
-    saveState();
-  }
+function closeModal() {
+  pendingTileId = null;
+  document.getElementById('modal').classList.add('hidden');
 }
 
-async function deleteEntry(player, id) {
-  state[player] = state[player].filter(e => e.id !== id);
-  renderBountyBoard();
+async function claim(player) {
+  if (pendingTileId === null) return;
+  const entry = state.board.find(e => e.id === pendingTileId);
+  if (entry) entry.claimedBy = player;
+  closeModal();
+  renderAll();
   await saveState();
 }
 
-async function toggleFound(player, id) {
-  const entry = state[player].find(e => e.id === id);
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+
+async function toggleFound(id) {
+  const entry = state.board.find(e => e.id === id);
   if (entry) entry.found = !entry.found;
-  renderBountyBoard();
+  renderAll();
+  await saveState();
+}
+
+async function unclaim(id) {
+  const entry = state.board.find(e => e.id === id);
+  if (entry) { entry.claimedBy = null; entry.found = false; }
+  renderAll();
   await saveState();
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 
-function renderBountyBoard() {
-  ['dave', 'colton'].forEach(p => {
-    const container = document.getElementById(`${p}Bounties`);
-    if (!container) return;
+function renderBoard() {
+  const grid = document.getElementById('boardGrid');
+  if (!grid) return;
 
-    // Update header with progress count
-    const header     = document.getElementById(`${p}Header`);
-    const total      = state[p].length;
-    const foundCount = state[p].filter(e => e.found).length;
-    const name       = p === 'dave' ? 'Dave' : 'Colton';
-    if (header) header.textContent = total > 0 ? `${name}  ${foundCount} / ${total}` : name;
+  if (!state.board.length) {
+    grid.innerHTML = `
+      <div class="board-empty">
+        <div>No board yet</div>
+        <button class="generate-btn" onclick="generateBoard()">Generate Board</button>
+      </div>`;
+    return;
+  }
 
-    if (total === 0) {
-      container.innerHTML = '<div class="empty-state">No bounties yet</div>';
-      return;
-    }
+  grid.innerHTML = '';
+  state.board.forEach(entry => {
+    const tile = document.createElement('div');
+    const classes = ['tile'];
+    if (!entry.revealed)      classes.push('face-down');
+    else if (entry.claimedBy) classes.push('claimed', `claimed-${entry.claimedBy}`);
+    tile.className = classes.join(' ');
 
-    // Sort: active hunts first, found ones at bottom
-    const sorted = [...state[p]].sort((a, b) => (a.found ? 1 : 0) - (b.found ? 1 : 0));
+    if (!entry.claimedBy) tile.onclick = () => openModal(entry.id);
 
-    container.innerHTML = '';
-    sorted.forEach(entry => {
-      const card = document.createElement('div');
-      card.className = 'bounty-card' + (entry.found ? ' found' : '');
-
-      const spriteHtml = entry.sprite
-        ? `<img src="${entry.sprite}" alt="${entry.pokemon}" class="shiny-sprite">`
-        : `<div class="sprite-placeholder">✨</div>`;
-
-      card.innerHTML = `
-        ${spriteHtml}
-        <div class="bounty-info">
-          <div class="bounty-pokemon">${entry.pokemon}</div>
-          <div class="bounty-game">${entry.game}</div>
-        </div>
-        <div class="card-actions">
-          <button class="reroll-btn" title="Reroll" onclick="rerollEntry('${p}', ${entry.id})">↺</button>
-          <button class="found-btn${entry.found ? ' active' : ''}" title="${entry.found ? 'Unmark' : 'Mark found'}" onclick="toggleFound('${p}', ${entry.id})">★</button>
-          <button class="delete-btn" title="Remove" onclick="deleteEntry('${p}', ${entry.id})">✕</button>
-        </div>
+    if (!entry.revealed) {
+      tile.innerHTML = `<div class="tile-mystery">✦</div>`;
+    } else {
+      tile.innerHTML = `
+        ${entry.sprite
+          ? `<img src="${entry.sprite}" alt="${entry.pokemon}" class="tile-img">`
+          : `<div class="tile-placeholder">✨</div>`}
+        <div class="tile-name">${entry.pokemon}</div>
+        <div class="tile-game">${entry.game}</div>
+        ${entry.claimedBy ? `<div class="tile-badge">${entry.claimedBy === 'dave' ? 'Dave' : 'Colton'}</div>` : ''}
       `;
-      container.appendChild(card);
-    });
+    }
+    grid.appendChild(tile);
   });
+}
+
+function renderRoster(player) {
+  const container = document.getElementById(`${player}Roster`);
+  const header    = document.getElementById(`${player}Header`);
+  if (!container) return;
+
+  const claimed = state.board.filter(e => e.claimedBy === player);
+  const found   = claimed.filter(e => e.found).length;
+  const name    = player === 'dave' ? 'Dave' : 'Colton';
+  if (header) header.textContent = claimed.length ? `${name}  ${found}/${claimed.length}` : name;
+
+  if (!claimed.length) {
+    container.innerHTML = '<div class="empty-state">No claims yet</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  claimed.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'roster-card' + (entry.found ? ' found' : '');
+    card.innerHTML = `
+      ${entry.sprite
+        ? `<img src="${entry.sprite}" alt="${entry.pokemon}" class="roster-sprite">`
+        : `<div class="roster-sprite-ph">✨</div>`}
+      <div class="roster-info">
+        <div class="roster-pokemon">${entry.pokemon}</div>
+        <div class="roster-game">${entry.game}</div>
+      </div>
+      <div class="card-actions">
+        <button class="found-btn${entry.found ? ' active' : ''}"
+          title="${entry.found ? 'Unmark' : 'Mark found'}"
+          onclick="toggleFound(${entry.id})">★</button>
+        <button class="delete-btn" title="Unclaim" onclick="unclaim(${entry.id})">✕</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderAll() {
+  renderBoard();
+  renderRoster('dave');
+  renderRoster('colton');
 }
 
 // ── PERSIST ───────────────────────────────────────────────────────────────────
@@ -207,23 +264,21 @@ async function saveState() {
 }
 
 async function loadAndRender() {
-  // Render immediately from localStorage — no network wait
   try {
     const saved  = localStorage.getItem('shinyBounty');
     const parsed = saved ? JSON.parse(saved) : null;
     if (isValidState(parsed)) state = parsed;
   } catch {}
-  renderBountyBoard();
+  renderAll();
   setSyncStatus('loading', '⟳ Syncing...');
 
-  // Sync from remote in background
   const remote = await pullState();
   if (isValidState(remote)) {
     const remoteNewer = !state.savedAt || !remote.savedAt || remote.savedAt >= state.savedAt;
     if (remoteNewer) {
       state = remote;
       localStorage.setItem('shinyBounty', JSON.stringify(state));
-      renderBountyBoard();
+      renderAll();
     }
   }
   setSyncStatus('ok', '✓ Ready');

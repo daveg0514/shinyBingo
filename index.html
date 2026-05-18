@@ -3,32 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shiny Bounty Board</title>
+<title>Shiny Draft Board</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
 
-  <header class="header">
-    <h1 class="title">★ Shiny Bounty Board ★</h1>
+<header class="header">
+  <h1 class="title">★ Shiny Draft Board ★</h1>
+  <div class="header-sub">
     <span id="syncStatus" class="sync-pill">● Connecting...</span>
-  </header>
+    <button class="new-board-btn" onclick="confirmNewBoard()">⟳ New Board</button>
+  </div>
+</header>
 
-  <div class="board">
+<div class="layout">
 
-    <div class="column">
-      <div class="col-header dave" id="daveHeader">Dave</div>
-      <div class="bounties" id="daveBounties"></div>
-      <button class="roll-btn dave" onclick="addSpin('dave')">🎲 Roll Bounty</button>
+  <div class="roster-col">
+    <div class="col-header dave" id="daveHeader">Dave</div>
+    <div class="roster-list" id="daveRoster"></div>
+  </div>
+
+  <div class="board-col">
+    <div class="board-grid" id="boardGrid"></div>
+  </div>
+
+  <div class="roster-col">
+    <div class="col-header colton" id="coltonHeader">Colton</div>
+    <div class="roster-list" id="coltonRoster"></div>
+  </div>
+
+</div>
+
+<div id="modal" class="modal-overlay hidden" onclick="closeModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div id="modalSpriteWrap"></div>
+    <div class="modal-pokemon" id="modalPokemon"></div>
+    <div class="modal-game" id="modalGame"></div>
+    <p class="modal-prompt">Who claims this?</p>
+    <div class="modal-btns">
+      <button class="modal-btn dave" onclick="claim('dave')">Dave</button>
+      <button class="modal-btn colton" onclick="claim('colton')">Colton</button>
     </div>
-
-    <div class="column">
-      <div class="col-header colton" id="coltonHeader">Colton</div>
-      <div class="bounties" id="coltonBounties"></div>
-      <button class="roll-btn colton" onclick="addSpin('colton')">🎲 Roll Bounty</button>
-    </div>
-
+    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
   </div>
 </div>
 
