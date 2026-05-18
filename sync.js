@@ -43,5 +43,5 @@ function startAutoRefresh() {
     localStorage.setItem('shinyConquest', JSON.stringify(state));
     renderGame();
     setSyncStatus('ok', '✓ Synced ' + new Date().toLocaleTimeString());
-  }, 5000);
+  }, 15000);
 }

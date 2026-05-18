@@ -68,10 +68,13 @@ async function respinHunt(player) {
   const nodeId = pend.nodeId;
   state.pending[player] = null;
   await saveState();
-  setPlayer(player);
+  currentPlayer = player;
+  document.getElementById('btnDave').classList.toggle('active', player === 'dave');
+  document.getElementById('btnColton').classList.toggle('active', player === 'colton');
   selectedNodeId = nodeId;
   showSpinUI(true);
-  renderMap();
+  renderGame();
+  spin();
 }
 
 // ── MARK FOUND ────────────────────────────────────────────────────────────────
@@ -246,10 +249,10 @@ function renderPanels() {
         `Territory #${pend.nodeId + 1}<br>` +
         `${pend.game}<br>` +
         `${pend.method}${pend.location ? ' · ' + pend.location : ''}`;
-      btns.hidden = false;
+      btns.style.display = 'flex';
     } else {
       body.textContent = 'No active hunt';
-      btns.hidden = true;
+      btns.style.display = 'none';
     }
   });
 }
