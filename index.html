@@ -59,12 +59,18 @@
         <div class="hunt-panel">
           <div class="panel-header dave">Dave's Hunt</div>
           <div class="panel-body" id="davePanelBody">No active hunt</div>
-          <button class="found-btn dave" id="daveFoundBtn" onclick="markFound('dave')" hidden>★ Found it!</button>
+          <div class="hunt-btns" id="daveHuntBtns" hidden>
+            <button class="respin-btn dave" onclick="respinHunt('dave')">↺ Respin</button>
+            <button class="found-btn dave" id="daveFoundBtn" onclick="markFound('dave')">★ Found it!</button>
+          </div>
         </div>
         <div class="hunt-panel">
           <div class="panel-header colton">Colton's Hunt</div>
           <div class="panel-body" id="coltonPanelBody">No active hunt</div>
-          <button class="found-btn colton" id="coltonFoundBtn" onclick="markFound('colton')" hidden>★ Found it!</button>
+          <div class="hunt-btns" id="coltonHuntBtns" hidden>
+            <button class="respin-btn colton" onclick="respinHunt('colton')">↺ Respin</button>
+            <button class="found-btn colton" id="coltonFoundBtn" onclick="markFound('colton')">★ Found it!</button>
+          </div>
         </div>
       </div>
 

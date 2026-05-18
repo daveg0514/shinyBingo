@@ -60,6 +60,20 @@ async function onSpinComplete(result) {
   renderGame();
 }
 
+// ── RESPIN ────────────────────────────────────────────────────────────────────
+
+async function respinHunt(player) {
+  const pend = state.pending[player];
+  if (!pend || state.winner) return;
+  const nodeId = pend.nodeId;
+  state.pending[player] = null;
+  await saveState();
+  setPlayer(player);
+  selectedNodeId = nodeId;
+  showSpinUI(true);
+  renderMap();
+}
+
 // ── MARK FOUND ────────────────────────────────────────────────────────────────
 
 async function markFound(player) {
@@ -222,9 +236,9 @@ function renderMap() {
 
 function renderPanels() {
   ['dave','colton'].forEach(p => {
-    const pend   = state.pending[p];
-    const body   = document.getElementById(`${p}PanelBody`);
-    const btn    = document.getElementById(`${p}FoundBtn`);
+    const pend = state.pending[p];
+    const body = document.getElementById(`${p}PanelBody`);
+    const btns = document.getElementById(`${p}HuntBtns`);
 
     if (pend) {
       body.innerHTML =
@@ -232,10 +246,10 @@ function renderPanels() {
         `Territory #${pend.nodeId + 1}<br>` +
         `${pend.game}<br>` +
         `${pend.method}${pend.location ? ' · ' + pend.location : ''}`;
-      btn.hidden = false;
+      btns.hidden = false;
     } else {
       body.textContent = 'No active hunt';
-      btn.hidden = true;
+      btns.hidden = true;
     }
   });
 }
