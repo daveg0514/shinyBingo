@@ -166,6 +166,7 @@ function landReel(el, value) {
 }
 
 function spin() {
+  const lockedNodeId = selectedNodeId;
   const els = {
     game:     document.getElementById('game'),
     method:   document.getElementById('method'),
@@ -221,7 +222,7 @@ function spin() {
       if (ticks >= 25) {
         clearInterval(iv);
         landReel(els.pokemon, enc.pokemon);
-        onSpinComplete({game, method, location: enc.location, pokemon: enc.pokemon});
+        onSpinComplete({game, method, location: enc.location, pokemon: enc.pokemon}, lockedNodeId);
       }
     }
   }, 100);

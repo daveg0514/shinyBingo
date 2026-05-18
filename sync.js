@@ -1,7 +1,7 @@
 const MASTER_KEY = '$2a$10$y78gUbDpbg0cgnCLtYOgO.YI6kWqvi1Z0F45uFkoC2cpPACtN.G7y';
 const BIN_ID     = '69ed383a856a6821897180c7';
 
-var isSaving = false; // written by game.js during saves
+var isSaving = false;
 
 function setSyncStatus(s, msg) {
   const el = document.getElementById('syncStatus');
@@ -39,9 +39,10 @@ function startAutoRefresh() {
     if (document.hidden || isSaving) return;
     const remote = await pullState();
     if (!isValidState(remote) || isSaving) return;
+    if (remote.savedAt && state.savedAt && remote.savedAt < state.savedAt) return;
     state = remote;
-    localStorage.setItem('shinyConquest', JSON.stringify(state));
-    renderGame();
+    localStorage.setItem('shinyBounty', JSON.stringify(state));
+    renderBountyBoard();
     setSyncStatus('ok', '✓ Synced ' + new Date().toLocaleTimeString());
   }, 15000);
 }

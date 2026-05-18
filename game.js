@@ -1,125 +1,150 @@
+// ── GAME DATA ─────────────────────────────────────────────────────────────────
+
+const EXTRA_GAMES = {
+  'Sun / Moon': ['Rowlet','Litten','Popplio','Decidueye','Incineroar','Primarina',
+    'Mimikyu','Solgaleo','Lunala','Necrozma','Lycanroc','Kommo-o','Tapu Koko',
+    'Tapu Lele','Tapu Bulu','Tapu Fini','Toxapex','Golisopod','Salazzle','Vikavolt',
+    'Pikipek','Yungoos','Grubbin','Crabrawler','Mudbray','Sandygast','Stufful',
+    'Bounsweet','Comfey','Oranguru','Passimian','Wimpod','Jangmo-o','Wishiwashi',
+    'Mareanie','Dhelmise','Drampa','Turtonator','Togedemaru','Bruxish'],
+  'Ultra Sun / Ultra Moon': ['Rowlet','Litten','Popplio','Decidueye','Incineroar',
+    'Primarina','Mimikyu','Solgaleo','Lunala','Necrozma','Lycanroc','Kommo-o',
+    'Tapu Koko','Tapu Lele','Tapu Bulu','Tapu Fini','Poipole','Naganadel',
+    'Stakataka','Blacephalon','Buzzwole','Pheromosa','Xurkitree','Celesteela',
+    'Kartana','Guzzlord','Nihilego','Absol','Articuno','Zapdos','Moltres','Mewtwo',
+    'Raikou','Entei','Suicune','Lugia','Ho-Oh','Latias','Latios','Kyogre','Groudon',
+    'Rayquaza','Dialga','Palkia','Giratina','Xerneas','Yveltal'],
+  "Let's Go Pikachu / Eevee": ['Bulbasaur','Charmander','Squirtle','Pikachu','Eevee',
+    'Mewtwo','Dragonite','Snorlax','Gengar','Alakazam','Machamp','Gyarados','Lapras',
+    'Articuno','Zapdos','Moltres','Aerodactyl','Vaporeon','Jolteon','Flareon',
+    'Porygon','Hitmonlee','Hitmonchan','Scyther','Pinsir','Kangaskhan','Tauros'],
+  'Sword / Shield': ['Grookey','Scorbunny','Sobble','Rillaboom','Cinderace','Inteleon',
+    'Corviknight','Toxtricity','Dragapult','Grimmsnarl','Zacian','Zamazenta',
+    'Eternatus','Urshifu','Regieleki','Regidrago','Galarian Articuno',
+    'Galarian Zapdos','Galarian Moltres','Calyrex','Glastrier','Spectrier',
+    'Kubfu','Zarude','Appletun','Flapple','Dreepy','Hatenna','Impidimp','Morpeko'],
+  'Brilliant Diamond / Shining Pearl': ['Turtwig','Chimchar','Piplup','Lucario',
+    'Garchomp','Dialga','Palkia','Giratina','Arceus','Darkrai','Shaymin','Cresselia',
+    'Heatran','Rotom','Mesprit','Uxie','Azelf','Regigigas','Starly','Bidoof',
+    'Shinx','Budew','Cranidos','Shieldon','Drifloon','Buizel','Cherubi','Shellos',
+    'Stunky','Bonsly','Mime Jr.','Happiny','Chatot','Spiritomb','Riolu'],
+  'Legends: Arceus': ['Rowlet','Cyndaquil','Oshawott','Decidueye','Typhlosion',
+    'Samurott','Wyrdeer','Kleavor','Ursaluna','Basculegion','Sneasler','Overqwil',
+    'Enamorus','Dialga','Palkia','Giratina','Arceus','Regigigas','Cresselia',
+    'Hisuian Growlithe','Hisuian Voltorb','Hisuian Qwilfish','Hisuian Sneasel',
+    'Hisuian Zorua','Hisuian Zoroark','Hisuian Braviary','Hisuian Lilligant'],
+  'Scarlet / Violet': ['Sprigatito','Fuecoco','Quaxly','Meowscarada','Skeledirge',
+    'Quaquaval','Koraidon','Miraidon','Tinkaton','Garganacl','Annihilape','Kingambit',
+    'Baxcalibur','Gholdengo','Ceruledge','Armarouge','Wo-Chien','Chien-Pao',
+    'Ting-Lu','Chi-Yu','Flutter Mane','Slither Wing','Great Tusk','Iron Treads',
+    'Roaring Moon','Iron Valiant','Sandy Shocks','Iron Moth','Scream Tail',
+    'Iron Bundle','Brute Bonnet','Iron Hands'],
+};
+
+function rollPokemon() {
+  const dbGames   = typeof ENCOUNTER_DB !== 'undefined' ? Object.keys(ENCOUNTER_DB) : [];
+  const extraGames = Object.keys(EXTRA_GAMES);
+  const allGames  = [...dbGames, ...extraGames];
+  const game      = allGames[Math.floor(Math.random() * allGames.length)];
+
+  let pool = [];
+  if (typeof ENCOUNTER_DB !== 'undefined' && ENCOUNTER_DB[game]) {
+    pool = Object.values(ENCOUNTER_DB[game]).flat().map(e => e.pokemon);
+  } else if (EXTRA_GAMES[game]) {
+    pool = EXTRA_GAMES[game];
+  }
+  pool = [...new Set(pool.filter(Boolean))];
+
+  const pokemon = pool.length ? pool[Math.floor(Math.random() * pool.length)] : 'Pikachu';
+  return {game, pokemon};
+}
+
+async function fetchShinySprite(name) {
+  const slug = name.toLowerCase()
+    .replace(/♀/g, '-f').replace(/♂/g, '-m')
+    .replace(/['']/g, '').replace(/[.:\s]+/g, '-')
+    .replace(/-+/g, '-').replace(/^-|-$/g, '');
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${slug}`);
+    if (!res.ok) return null;
+    return (await res.json()).sprites?.front_shiny ?? null;
+  } catch { return null; }
+}
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 
-function defaultState() {
-  const daveStart   = DAVE_STARTS[Math.floor(Math.random() * DAVE_STARTS.length)];
-  const coltonStart = MIRROR[daveStart];
-  return {
-    fronts:      {dave: daveStart, colton: coltonStart},
-    territories: {
-      [daveStart]:   {owner:'dave',   hunt:null, sprite:null},
-      [coltonStart]: {owner:'colton', hunt:null, sprite:null},
-    },
-    pending: {dave:null, colton:null},
-    scores:  {dave:1, colton:1},
-    winner:  null,
-  };
-}
+function defaultState() { return {dave: [], colton: []}; }
 
 function isValidState(s) {
-  return s && s.fronts && s.territories && s.pending && s.scores;
+  return s && Array.isArray(s.dave) && Array.isArray(s.colton);
 }
 
-let state          = defaultState();
-let currentPlayer  = 'dave';
-let selectedNodeId = null;
+let state = defaultState();
 
-// ── PLAYER SELECT ─────────────────────────────────────────────────────────────
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
 
-function setPlayer(p) {
-  currentPlayer  = p;
-  selectedNodeId = null;
-  document.getElementById('btnDave').classList.toggle('active', p === 'dave');
-  document.getElementById('btnColton').classList.toggle('active', p === 'colton');
-  showSpinUI(false);
-  renderGame();
-}
+async function addSpin(player) {
+  const {game, pokemon} = rollPokemon();
+  const id = Date.now() + Math.random(); // unique id
+  state[player].push({id, pokemon, game, sprite: null});
+  renderBountyBoard();
+  saveState();
 
-// ── NODE CLICK ────────────────────────────────────────────────────────────────
-
-function onNodeClick(nodeId) {
-  if (state.winner) return;
-  if (state.territories[nodeId]?.owner) return;
-
-  const front = state.fronts[currentPlayer];
-  if (front === null || !ADJ[front]?.includes(nodeId)) return;
-
-  selectedNodeId = nodeId;
-  showSpinUI(true);
-  renderMap();
-}
-
-// ── SPIN CALLBACK ─────────────────────────────────────────────────────────────
-
-async function onSpinComplete(result) {
-  if (selectedNodeId === null) return;
-  state.pending[currentPlayer] = {nodeId: selectedNodeId, ...result};
-  selectedNodeId = null;
-  showSpinUI(false);
-  await saveState();
-  renderGame();
-}
-
-// ── RESPIN ────────────────────────────────────────────────────────────────────
-
-async function respinHunt(player) {
-  const pend = state.pending[player];
-  if (!pend || state.winner) return;
-  const nodeId = pend.nodeId;
-  state.pending[player] = null;
-  await saveState();
-  currentPlayer = player;
-  document.getElementById('btnDave').classList.toggle('active', player === 'dave');
-  document.getElementById('btnColton').classList.toggle('active', player === 'colton');
-  selectedNodeId = nodeId;
-  showSpinUI(true);
-  renderGame();
-  spin();
-}
-
-// ── MARK FOUND ────────────────────────────────────────────────────────────────
-
-async function markFound(player) {
-  const pend = state.pending[player];
-  if (!pend || state.winner) return;
-
-  const {nodeId, game, method, location, pokemon} = pend;
-
-  state.territories[nodeId] = {owner:player, hunt:{game, method, location, pokemon}, sprite:null};
-  state.fronts[player]      = nodeId;
-  state.pending[player]     = null;
-  state.scores[player]++;
-  if (state.scores[player] >= 16) state.winner = player;
-
-  selectedNodeId = null;
-  showSpinUI(false);
-  await saveState();
-  renderGame();
-
-  fetchShinySprite(pokemon).then(url => {
-    if (!url || !state.territories[nodeId]) return;
-    state.territories[nodeId].sprite = url;
-    const img = document.querySelector(`#node-${nodeId} image.sprite`);
-    if (img) { img.setAttribute('href', url); img.setAttribute('visibility', 'visible'); }
+  const sprite = await fetchShinySprite(pokemon);
+  const entry  = state[player].find(e => e.id === id);
+  if (sprite && entry) {
+    entry.sprite = sprite;
+    renderBountyBoard();
     saveState();
-  });
+  }
 }
 
-// ── NEW GAME ──────────────────────────────────────────────────────────────────
-
-async function newGame() {
-  if (!confirm('Start a new conquest? All territory will be lost.')) return;
-  state          = defaultState();
-  selectedNodeId = null;
-  showSpinUI(false);
+async function deleteEntry(player, id) {
+  state[player] = state[player].filter(e => e.id !== id);
+  renderBountyBoard();
   await saveState();
-  renderGame();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+function renderBountyBoard() {
+  ['dave', 'colton'].forEach(p => {
+    const container = document.getElementById(`${p}Bounties`);
+    if (!container) return;
+
+    if (state[p].length === 0) {
+      container.innerHTML = '<div class="empty-state">No bounties yet</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    state[p].forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'bounty-card';
+
+      const spriteHtml = entry.sprite
+        ? `<img src="${entry.sprite}" alt="${entry.pokemon}" class="shiny-sprite">`
+        : `<div class="sprite-placeholder">✨</div>`;
+
+      card.innerHTML = `
+        ${spriteHtml}
+        <div class="bounty-info">
+          <div class="bounty-pokemon">${entry.pokemon}</div>
+          <div class="bounty-game">${entry.game}</div>
+        </div>
+        <button class="delete-btn" title="Remove" onclick="deleteEntry('${p}', ${entry.id})">✕</button>
+      `;
+      container.appendChild(card);
+    });
+  });
 }
 
 // ── PERSIST ───────────────────────────────────────────────────────────────────
 
 async function saveState() {
   isSaving = true;
-  localStorage.setItem('shinyConquest', JSON.stringify(state));
+  state.savedAt = Date.now();
+  localStorage.setItem('shinyBounty', JSON.stringify(state));
   await pushState(state);
   isSaving = false;
 }
@@ -131,131 +156,15 @@ async function loadAndRender() {
     state = remote;
   } else {
     try {
-      const saved = localStorage.getItem('shinyConquest');
+      const saved = localStorage.getItem('shinyBounty');
       const parsed = saved ? JSON.parse(saved) : null;
       state = isValidState(parsed) ? parsed : defaultState();
     } catch { state = defaultState(); }
   }
-  localStorage.setItem('shinyConquest', JSON.stringify(state));
+  localStorage.setItem('shinyBounty', JSON.stringify(state));
   setSyncStatus('ok', '✓ Loaded');
-  buildMap();
-  renderGame();
+  renderBountyBoard();
   startAutoRefresh();
-}
-
-// ── UI HELPERS ────────────────────────────────────────────────────────────────
-
-function showSpinUI(show) {
-  document.getElementById('spinHint').hidden  =  show;
-  document.getElementById('slots').hidden     = !show;
-  const btn = document.getElementById('spinBtn');
-  btn.hidden   = !show;
-  btn.disabled = !show;
-  if (!show) {
-    ['game','method','location','pokemon'].forEach(id => {
-      const el = document.getElementById(id);
-      el.textContent = '– – –';
-      el.classList.remove('spinning','landing');
-    });
-  }
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-
-function renderGame() {
-  renderScoreboard();
-  renderMap();
-  renderPanels();
-}
-
-function renderScoreboard() {
-  ['dave','colton'].forEach(p => {
-    document.querySelector(`#${p}Score .score-value`).textContent = state.scores[p] ?? 0;
-  });
-  const banner = document.getElementById('winBanner');
-  if (state.winner) {
-    banner.textContent = `★ ${state.winner.toUpperCase()} WINS THE CONQUEST! ★`;
-    banner.hidden = false;
-  } else {
-    banner.hidden = true;
-  }
-}
-
-function renderMap() {
-  const front      = state.fronts[currentPlayer];
-  const claimable  = front !== null
-    ? ADJ[front].filter(id => !state.territories[id]?.owner) : [];
-  const dPend      = state.pending.dave?.nodeId;
-  const cPend      = state.pending.colton?.nodeId;
-
-  NODES.forEach(n => {
-    const g   = document.getElementById(`node-${n.id}`);
-    if (!g) return;
-    const ter = state.territories[n.id];
-    const cls = ['territory'];
-
-    if (ter?.owner) {
-      cls.push(`owned-${ter.owner}`);
-      if (state.fronts.dave   === n.id) cls.push('front-dave');
-      if (state.fronts.colton === n.id) cls.push('front-colton');
-    } else if (dPend === n.id && cPend === n.id) {
-      cls.push('contested');
-    } else if (dPend === n.id) {
-      cls.push('pending-dave');
-    } else if (cPend === n.id) {
-      cls.push('pending-colton');
-    } else if (claimable.includes(n.id)) {
-      cls.push('claimable');
-    }
-
-    if (n.id === selectedNodeId) cls.push('selected');
-    g.setAttribute('class', cls.join(' '));
-
-    // Sprite
-    const img = g.querySelector('image.sprite');
-    if (img) {
-      const hasSprite = ter?.sprite;
-      img.setAttribute('href', hasSprite || '');
-      img.setAttribute('visibility', hasSprite ? 'visible' : 'hidden');
-    }
-
-    // Label: hide when a hunt sprite would show
-    const lbl = g.querySelector('text.node-label');
-    if (lbl) lbl.setAttribute('visibility', ter?.hunt ? 'hidden' : 'visible');
-
-    // Tooltip
-    const title = g.querySelector('title');
-    if (title) {
-      if (ter?.hunt) {
-        title.textContent = `${ter.hunt.pokemon} · ${ter.hunt.method} · ${ter.hunt.game}`;
-      } else if (ter?.owner) {
-        title.textContent = `${ter.owner.charAt(0).toUpperCase() + ter.owner.slice(1)}'s base`;
-      } else {
-        const isPend = dPend === n.id ? 'Dave hunting here' : cPend === n.id ? 'Colton hunting here' : '';
-        title.textContent = isPend || `Territory ${n.id + 1}`;
-      }
-    }
-  });
-}
-
-function renderPanels() {
-  ['dave','colton'].forEach(p => {
-    const pend = state.pending[p];
-    const body = document.getElementById(`${p}PanelBody`);
-    const btns = document.getElementById(`${p}HuntBtns`);
-
-    if (pend) {
-      body.innerHTML =
-        `<strong>${pend.pokemon}</strong>` +
-        `Territory #${pend.nodeId + 1}<br>` +
-        `${pend.game}<br>` +
-        `${pend.method}${pend.location ? ' · ' + pend.location : ''}`;
-      btns.style.display = 'flex';
-    } else {
-      body.textContent = 'No active hunt';
-      btns.style.display = 'none';
-    }
-  });
 }
 
 window.addEventListener('load', loadAndRender);

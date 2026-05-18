@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shiny Conquest</title>
+<title>Shiny Bounty Board</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -11,78 +11,28 @@
 <div class="container">
 
   <header class="header">
-    <h1 class="header-title">★ Shiny Conquest ★</h1>
-    <div class="header-sub">Territory Hunt · First to 16 wins</div>
+    <h1 class="title">★ Shiny Bounty Board ★</h1>
     <span id="syncStatus" class="sync-pill">● Connecting...</span>
   </header>
 
-  <div class="scoreboard">
-    <div id="daveScore" class="score-panel dave">
-      <div class="score-name">Dave</div>
-      <div class="score-value">0</div>
-      <div class="score-sub">/ 16</div>
-    </div>
-    <div class="score-vs">VS</div>
-    <div id="coltonScore" class="score-panel colton">
-      <div class="score-name">Colton</div>
-      <div class="score-value">0</div>
-      <div class="score-sub">/ 16</div>
-    </div>
-    <div id="winBanner" class="win-banner" hidden></div>
-  </div>
+  <div class="board">
 
-  <div class="main-layout">
-
-    <div class="map-wrap">
-      <svg id="map" viewBox="0 0 540 360" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="column">
+      <div class="col-header dave">Dave</div>
+      <div class="bounties" id="daveBounties"></div>
+      <button class="roll-btn dave" onclick="addSpin('dave')">🎲 Roll Bounty</button>
     </div>
 
-    <div class="side-panel">
-
-      <div class="player-select">
-        <button class="player-btn dave active" id="btnDave"   onclick="setPlayer('dave')">Dave</button>
-        <button class="player-btn colton"       id="btnColton" onclick="setPlayer('colton')">Colton</button>
-      </div>
-
-      <div class="spin-area">
-        <p class="spin-hint" id="spinHint">Select an adjacent territory to claim</p>
-        <div class="slots" id="slots" hidden>
-          <div class="slot"><div class="slot-label">Game</div><div class="slot-value" id="game">– – –</div></div>
-          <div class="slot"><div class="slot-label">Method</div><div class="slot-value" id="method">– – –</div></div>
-          <div class="slot"><div class="slot-label">Location</div><div class="slot-value" id="location">– – –</div></div>
-          <div class="slot"><div class="slot-label">Pokémon</div><div class="slot-value" id="pokemon">– – –</div></div>
-        </div>
-        <button class="spin-btn" id="spinBtn" onclick="spin()" disabled hidden>SPIN</button>
-      </div>
-
-      <div class="hunt-panels">
-        <div class="hunt-panel">
-          <div class="panel-header dave">Dave's Hunt</div>
-          <div class="panel-body" id="davePanelBody">No active hunt</div>
-          <div class="hunt-btns" id="daveHuntBtns" style="display:none">
-            <button class="respin-btn dave" onclick="respinHunt('dave')">↺ Respin</button>
-            <button class="found-btn dave" id="daveFoundBtn" onclick="markFound('dave')">★ Found it!</button>
-          </div>
-        </div>
-        <div class="hunt-panel">
-          <div class="panel-header colton">Colton's Hunt</div>
-          <div class="panel-body" id="coltonPanelBody">No active hunt</div>
-          <div class="hunt-btns" id="coltonHuntBtns" style="display:none">
-            <button class="respin-btn colton" onclick="respinHunt('colton')">↺ Respin</button>
-            <button class="found-btn colton" id="coltonFoundBtn" onclick="markFound('colton')">★ Found it!</button>
-          </div>
-        </div>
-      </div>
-
-      <button class="new-game-btn" onclick="newGame()">New Game</button>
-
+    <div class="column">
+      <div class="col-header colton">Colton</div>
+      <div class="bounties" id="coltonBounties"></div>
+      <button class="roll-btn colton" onclick="addSpin('colton')">🎲 Roll Bounty</button>
     </div>
+
   </div>
 </div>
 
 <script src="encounter_data.js"></script>
-<script src="map.js"></script>
-<script src="spin.js"></script>
 <script src="sync.js"></script>
 <script src="game.js"></script>
 </body>
