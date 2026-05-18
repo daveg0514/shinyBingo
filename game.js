@@ -41,9 +41,11 @@ const EXTRA_GAMES = {
     'Iron Bundle','Brute Bonnet','Iron Hands'],
 };
 
+const EXCLUDED_GAMES = new Set(['Gold / Silver', 'Crystal']);
+
 function rollPokemon(exclude = []) {
-  const dbGames    = typeof ENCOUNTER_DB !== 'undefined' ? Object.keys(ENCOUNTER_DB) : [];
-  const extraGames = Object.keys(EXTRA_GAMES);
+  const dbGames    = typeof ENCOUNTER_DB !== 'undefined' ? Object.keys(ENCOUNTER_DB).filter(g => !EXCLUDED_GAMES.has(g)) : [];
+  const extraGames = Object.keys(EXTRA_GAMES).filter(g => !EXCLUDED_GAMES.has(g));
   const allGames   = [...dbGames, ...extraGames];
 
   for (let attempt = 0; attempt < 40; attempt++) {
