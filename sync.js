@@ -28,6 +28,7 @@ async function pullState() {
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
       headers: {'X-Master-Key': MASTER_KEY},
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     return (await res.json()).record ?? null;

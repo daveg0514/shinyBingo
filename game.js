@@ -150,20 +150,26 @@ async function saveState() {
 }
 
 async function loadAndRender() {
-  setSyncStatus('loading', '⟳ Loading...');
+  // Render immediately from localStorage — no network wait
+  try {
+    const saved  = localStorage.getItem('shinyBounty');
+    const parsed = saved ? JSON.parse(saved) : null;
+    if (isValidState(parsed)) state = parsed;
+  } catch {}
+  renderBountyBoard();
+  setSyncStatus('loading', '⟳ Syncing...');
+
+  // Sync from remote in background
   const remote = await pullState();
   if (isValidState(remote)) {
-    state = remote;
-  } else {
-    try {
-      const saved = localStorage.getItem('shinyBounty');
-      const parsed = saved ? JSON.parse(saved) : null;
-      state = isValidState(parsed) ? parsed : defaultState();
-    } catch { state = defaultState(); }
+    const remoteNewer = !state.savedAt || !remote.savedAt || remote.savedAt >= state.savedAt;
+    if (remoteNewer) {
+      state = remote;
+      localStorage.setItem('shinyBounty', JSON.stringify(state));
+      renderBountyBoard();
+    }
   }
-  localStorage.setItem('shinyBounty', JSON.stringify(state));
-  setSyncStatus('ok', '✓ Loaded');
-  renderBountyBoard();
+  setSyncStatus('ok', '✓ Ready');
   startAutoRefresh();
 }
 
