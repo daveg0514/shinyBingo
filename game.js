@@ -154,6 +154,36 @@ async function claim(player) {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 
+async function rerollTile() {
+  if (pendingTileId === null) return;
+  const entry = state.board.find(e => e.id === pendingTileId);
+  if (!entry) return;
+
+  const exclude = state.board.filter(b => b.id !== pendingTileId).map(b => b.pokemon);
+  const { game, pokemon } = rollPokemon(exclude);
+  entry.pokemon = pokemon;
+  entry.game    = game;
+  entry.sprite  = null;
+  renderBoard();
+
+  document.getElementById('modalPokemon').textContent    = pokemon;
+  document.getElementById('modalGame').textContent       = game;
+  document.getElementById('modalSpriteWrap').innerHTML   = `<div style="font-size:52px;line-height:1">✨</div>`;
+
+  const sprite = await fetchShinySprite(pokemon);
+  const fresh  = state.board.find(b => b.id === pendingTileId);
+  if (fresh && fresh.pokemon === pokemon) {
+    fresh.sprite = sprite;
+    renderBoard();
+    if (pendingTileId !== null) {
+      document.getElementById('modalSpriteWrap').innerHTML = sprite
+        ? `<img src="${sprite}" alt="${pokemon}" class="modal-sprite-img">`
+        : `<div style="font-size:52px;line-height:1">✨</div>`;
+    }
+    await saveState();
+  }
+}
+
 async function toggleFound(id) {
   const entry = state.board.find(e => e.id === id);
   if (entry) entry.found = !entry.found;

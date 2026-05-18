@@ -442,6 +442,25 @@ body {
 }
 .modal-btn.colton:hover { background: rgba(255,138,101,.28); }
 
+.modal-secondary {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.modal-reroll {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color .15s;
+  font-family: 'DM Mono', monospace;
+}
+.modal-reroll:hover { color: var(--text); }
+
 .modal-cancel {
   background: none;
   border: none;
