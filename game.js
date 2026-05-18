@@ -38,15 +38,21 @@ function setPlayer(p) {
 
 function onNodeClick(nodeId) {
   if (state.winner) return;
-  if (state.pending[currentPlayer]) return;
   if (state.territories[nodeId]?.owner) return;
 
   const front = state.fronts[currentPlayer];
   if (front === null || !ADJ[front]?.includes(nodeId)) return;
 
+  const pend = state.pending[currentPlayer];
+  if (pend) {
+    if (pend.nodeId === nodeId) return; // already hunting this territory — use Respin instead
+    state.pending[currentPlayer] = null; // abandon old hunt, switch territory
+    saveState();
+  }
+
   selectedNodeId = nodeId;
   showSpinUI(true);
-  renderMap();
+  renderGame();
 }
 
 // ── SPIN CALLBACK ─────────────────────────────────────────────────────────────
