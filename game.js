@@ -120,14 +120,14 @@ function confirmNewBoard() {
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
 
-function openModal(id) {
+async function openModal(id) {
   const entry = state.board.find(e => e.id === id);
   if (!entry || entry.claimedBy) return;
 
   if (!entry.revealed) {
     entry.revealed = true;
     renderBoard();
-    saveState();
+    await saveState();
   }
 
   pendingTileId = id;
@@ -161,29 +161,32 @@ async function rerollTile() {
   const entry = state.board.find(e => e.id === pendingTileId);
   if (!entry) return;
 
-  const exclude = state.board.filter(b => b.id !== pendingTileId).map(b => b.pokemon);
+  // Exclude every pokemon on the board (including the current tile) to guarantee a new pick
+  const exclude = state.board.map(b => b.pokemon);
   const { game, pokemon } = rollPokemon(exclude);
+
   entry.pokemon = pokemon;
   entry.game    = game;
   entry.sprite  = null;
-  renderBoard();
 
-  document.getElementById('modalPokemon').textContent    = pokemon;
-  document.getElementById('modalGame').textContent       = game;
-  document.getElementById('modalSpriteWrap').innerHTML   = `<div style="font-size:52px;line-height:1">✨</div>`;
+  document.getElementById('modalPokemon').textContent  = pokemon;
+  document.getElementById('modalGame').textContent     = game;
+  document.getElementById('modalSpriteWrap').innerHTML = `<div style="font-size:52px;line-height:1">✨</div>`;
+  renderBoard();
+  await saveState();
 
   const sprite = await fetchShinySprite(pokemon);
   const fresh  = state.board.find(b => b.id === pendingTileId);
-  if (fresh && fresh.pokemon === pokemon) {
-    fresh.sprite = sprite;
-    renderBoard();
-    if (pendingTileId !== null) {
-      document.getElementById('modalSpriteWrap').innerHTML = sprite
-        ? `<img src="${sprite}" alt="${pokemon}" class="modal-sprite-img">`
-        : `<div style="font-size:52px;line-height:1">✨</div>`;
-    }
-    await saveState();
+  if (!fresh || fresh.pokemon !== pokemon) return;
+
+  fresh.sprite = sprite;
+  renderBoard();
+  if (pendingTileId !== null) {
+    document.getElementById('modalSpriteWrap').innerHTML = sprite
+      ? `<img src="${sprite}" alt="${pokemon}" class="modal-sprite-img">`
+      : `<div style="font-size:52px;line-height:1">✨</div>`;
   }
+  await saveState();
 }
 
 async function toggleFound(id) {
