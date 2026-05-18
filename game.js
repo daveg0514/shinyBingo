@@ -43,16 +43,9 @@ function onNodeClick(nodeId) {
   const front = state.fronts[currentPlayer];
   if (front === null || !ADJ[front]?.includes(nodeId)) return;
 
-  const pend = state.pending[currentPlayer];
-  if (pend) {
-    if (pend.nodeId === nodeId) return; // already hunting this territory — use Respin instead
-    state.pending[currentPlayer] = null; // abandon old hunt, switch territory
-    saveState();
-  }
-
   selectedNodeId = nodeId;
   showSpinUI(true);
-  renderGame();
+  renderMap();
 }
 
 // ── SPIN CALLBACK ─────────────────────────────────────────────────────────────
@@ -97,6 +90,8 @@ async function markFound(player) {
   state.scores[player]++;
   if (state.scores[player] >= 16) state.winner = player;
 
+  selectedNodeId = null;
+  showSpinUI(false);
   await saveState();
   renderGame();
 
